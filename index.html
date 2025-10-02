@@ -1,0 +1,96 @@
+<!-- =========================
+     index.html – Sprint 1
+     ========================= -->
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transporte Escolar</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="container navPrincipal">
+      <div class="marcaSistema">
+        <div class="logoSistema"><img src="img/icon_bus.png" alt="bus"></div>
+        <h1>Transporte Escolar</h1>
+      </div>
+      <div class="acoesNav">
+        <button class="botao" onclick="abrirLogin()">Entrar</button>
+        <button class="botao botaoPrimario" onclick="rolarParaRapido()">Nova Rota</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="secaoHero">
+      <div class="cartaoHero">
+        <h2>Gerenciamento de Rotas</h2>
+        <form id="formRota">
+          <input type="text" id="nomeRota" class="entrada" placeholder="Nome da Rota" required>
+          <input type="text" id="origemRota" class="entrada" placeholder="Origem" required>
+          <input type="text" id="destinoRota" class="entrada" placeholder="Destino" required>
+          <button class="botao botaoPrimario" type="submit">Adicionar Rota</button>
+        </form>
+        <ul id="listaRotas"></ul>
+      </div>
+    </div>
+
+    <div class="cartaoHero">
+      <h2>Cadastro de Alunos</h2>
+      <form id="formAluno">
+        <input type="text" id="nomeAluno" class="entrada" placeholder="Nome do Aluno" required>
+        <input type="text" id="rotaAluno" class="entrada" placeholder="Rota do Aluno" required>
+        <button class="botao botaoPrimario" type="submit">Cadastrar Aluno</button>
+      </form>
+      <ul id="listaAlunos"></ul>
+    </div>
+
+    <div class="cartaoHero">
+      <h2>Cadastro de Responsáveis</h2>
+      <form id="formResponsavel">
+        <input type="text" id="nomeResponsavel" class="entrada" placeholder="Nome do Responsável" required>
+        <input type="text" id="alunoResponsavel" class="entrada" placeholder="Aluno Vinculado" required>
+        <button class="botao botaoPrimario" type="submit">Cadastrar Responsável</button>
+      </form>
+      <ul id="listaResponsaveis"></ul>
+    </div>
+
+    <div class="cartaoHero">
+      <h2>Cadastro de Motoristas</h2>
+      <form id="formMotorista">
+        <input type="text" id="nomeMotorista" class="entrada" placeholder="Nome do Motorista" required>
+        <input type="text" id="rotaMotorista" class="entrada" placeholder="Rota do Motorista" required>
+        <button class="botao botaoPrimario" type="submit">Cadastrar Motorista</button>
+      </form>
+      <ul id="listaMotoristas"></ul>
+    </div>
+
+    <footer>
+      <div class="container">
+        <small class="textoMutado">Sprint 1 · Prototipagem de Interface (HTML/CSS). Próximo: modelagem e persistência.</small>
+      </div>
+    </footer>
+  </main>
+
+  <dialog id="modalLogin">
+    <div class="conteudoModal">
+      <header>
+        <h3>Entrar</h3>
+        <p class="textoMutado">Protótipo visual. Implementação de autenticação nas próximas sprints.</p>
+      </header>
+      <form method="dialog">
+        <input class="entrada" type="email" placeholder="E-mail" required>
+        <input class="entrada" type="password" placeholder="Senha" required>
+        <div style="display:flex; gap:10px; justify-content:flex-end">
+          <button class="botao" value="cancelar">Cancelar</button>
+          <button class="botao botaoPrimario" value="entrar">Entrar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+:root{
+  --corFundo: #1e293b;        /* fundo azul escuro */
+  --corPainel: #0f172a;       /* painel/divs azul ainda mais escuro */
+  --corSuave: #64748b;        /* cinza suave para textos secundários */
+  --corTexto: #f1f5f9;        /* texto claro para contraste confortável */
+  --corMarca: #2563eb;        /* azul escuro para marca */
+  --corRealce: #1d4ed8;       /* azul escuro para realce */
+  --corOk: #22c55e;           /* verde suave para ok/sucesso */
+  --sombra: 0 10px 30px rgba(20,30,60,.18);
+  --raio: 18px;
+}
+
+*{ 
+  box-sizing: border-box;
+ }
+
+html, body{ 
+  height: 100%; 
+}
+
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  background: var(--corFundo);
+  color: var(--corTexto);
+  line-height: 1.6;
+}
+
+a{ 
+  color: inherit; 
+  text-decoration: none; 
+}
+
+.container{ 
+  max-width: 1100px; 
+  margin-inline: auto; 
+  padding: 24px; 
+}
+
+/* ====== topo / navegação ====== */
+header{
+  position: sticky; 
+  top:0;
+  backdrop-filter: saturate(140%) blur(8px);
+  background: rgba(37,99,235,.18); /* corMarca com transparência */
+  border-bottom: 1px solid rgba(37,99,235,.10);
+  z-index: 10;
+}
+
+.navPrincipal{
+  display:flex;
+  align-items:center; 
+  justify-content:space-between; 
+  gap:16px;
+}
+
+.marcaSistema{
+  display:flex; 
+  align-items:center; 
+  gap:10px;
+}
+
+.logoSistema {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  width: 48px;
+  margin-right: 12px;
+}
+
+.logoSistema img {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+}
+
+.marcaSistema h1{ 
+  font-size:18px; 
+  margin:0; 
+}
+
+.acoesNav{ 
+  display:flex; 
+  gap:10px; 
+}
+
+/* ====== botões ====== */
+.botao{
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid rgba(37,99,235,.18);
+  background: #334155;
+  color:var(--corTexto);
+  cursor:pointer;
+}
+
+.botao:hover{ 
+  filter: brightness(1.05); 
+}
+
+.botaoPrimario{
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--corMarca), var(--corRealce));
+  color:#fff;
+  font-weight:700;
+}
+
+/* ====== seção destaque/hero ====== */
+main{ padding-block: 28px; }
+
+.secaoHero{
+  display:block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.cartaoHero{
+  background: var(--corPainel);
+  border: 1px solid rgba(37,99,235,.10);
+  border-radius: var(--raio);
+  padding: 28px;
+  box-shadow: var(--sombra);
+  margin-bottom: 28px;
+  color: var(--corTexto);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+}
+
+.secaoHero h2{ 
+  font-size:32px; 
+  line-height:1.2; 
+  margin:0 0 10px; 
+}
+
+.selo{
+  display:inline-flex; 
+  align-items:center; 
+  gap:8px;
+  padding:6px 10px; 
+  border-radius:999px;
+  background: rgba(56,189,248,.08);
+  border:1px solid rgba(56,189,248,.18);
+  color: var(--corMarca);
+  font-size:12px; 
+  margin-bottom:12px;
+}
+
+.textoMutado{ 
+  color: var(--corSuave); 
+}
+
+/* formulário rápido */
+.formRapido{
+  display:grid; 
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap:12px;
+}
+
+.entrada, select{
+  width:100%; 
+  padding:12px 12px;
+  border-radius:12px;
+  background:#1e293b;
+  border:1px solid rgba(37,99,235,.18);
+  color:var(--corTexto);
+}
+
+.entrada:focus, select:focus{
+  outline:2px solid var(--corMarca); 
+  border-color: transparent;
+}
+
+.campoInvalido{
+  outline:2px solid #ef4444 !important;
+  border-color: transparent !important;
+}
+
+/* Espaçamento entre campos dos formulários */
+form input,
+form select,
+form button {
+  margin-bottom: 12px;
+}
+
+/* ====== cards das entidades ====== */
+.gradeEntidades{
+  display:grid; 
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap:16px; 
+  margin-top:18px;
+}
+
+.cartao{
+  background: var(--corPainel);
+  border: 1px solid rgba(37,99,235,.10);
+  border-radius: var(--raio);
+  padding:20px; 
+  box-shadow: var(--sombra);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.cartao h3{ 
+  margin:0 0 8px; 
+  font-size:18px; 
+  color: var(--corTexto);
+}
+
+/* ====== rodapé ====== */
+footer{
+  margin-top:28px; 
+  padding:16px 0;
+  border-top: 1px dashed rgba(37,99,235,.25);
+  color: #e2e8f0; /* cinza claro para letras do footer */
+  font-size:14px;
+}
+
+/* ====== modal ====== */
+dialog{
+  border:none; 
+  border-radius:16px;
+  padding:0; 
+  width:min(92vw, 420px);
+  background:#334155; 
+  color:var(--corTexto);
+  box-shadow: var(--sombra);
+}
+
+/* ====== responsividade ====== */
+@media (max-width: 900px){
+  .secaoHero{ 
+    grid-template-columns: 1fr; 
+  }
+  .gradeEntidades{ 
+    grid-template-columns: 1fr; 
+  }
+}
