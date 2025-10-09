@@ -66,13 +66,14 @@
       </form>
       <ul id="listaMotoristas"></ul>
     </div>
-
-    <footer>
-      <div class="container">
-        <small class="textoMutado">Sprint 1 · Prototipagem de Interface (HTML/CSS). Próximo: modelagem e persistência.</small>
-      </div>
-    </footer>
   </main>
+
+  <footer>
+    <small class="textoMutado">
+      Sprint 1 · Prototipagem de Interface (HTML/CSS). Próximo: modelagem e persistência.
+    </small>
+    <span class="devNome">Desenvolvedor: ALT TAB</span>
+  </footer>
 
   <dialog id="modalLogin">
     <div class="conteudoModal">
@@ -81,11 +82,11 @@
         <p class="textoMutado">Protótipo visual. Implementação de autenticação nas próximas sprints.</p>
       </header>
       <form method="dialog">
-        <input class="entrada" type="email" placeholder="E-mail" required>
-        <input class="entrada" type="password" placeholder="Senha" required>
+        <input class="entrada" type="email" id="loginEmail" placeholder="E-mail" required>
+        <input class="entrada" type="password" id="loginSenha" placeholder="Senha" required>
         <div style="display:flex; gap:10px; justify-content:flex-end">
-          <button class="botao" value="cancelar">Cancelar</button>
-          <button class="botao botaoPrimario" value="entrar">Entrar</button>
+          <button class="botao" type="button" onclick="document.getElementById('modalLogin').close()">Cancelar</button>
+          <button class="botao botaoPrimario" type="submit">Entrar</button>
         </div>
       </form>
     </div>

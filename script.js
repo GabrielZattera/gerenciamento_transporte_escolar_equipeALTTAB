@@ -1,10 +1,10 @@
 //modal de login
 function abrirLogin() { 
-    const miModal = document.getElementById("modalLogin");
-    if(modal && modal.showModal==="function"){ 
+    const modal = document.getElementById("modalLogin");
+    if (modal && typeof modal.showModal === "function") { 
         modal.showModal();
     } else {
-        alert("Modal no soportado em este navegador");
+        alert("Modal não suportado neste navegador");
     }
 }
 
@@ -292,6 +292,29 @@ function rolarParaRapido() {
 
     renderMotoristas();
 })();
+
+document.addEventListener("DOMContentLoaded", function() {
+  const modal = document.getElementById("modalLogin");
+  const emailInput = document.getElementById("loginEmail");
+  const senhaInput = document.getElementById("loginSenha");
+  const form = modal?.querySelector("form");
+
+  if (form) {
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+      const email = emailInput.value.trim();
+      const senha = senhaInput.value.trim();
+
+      // Login e senha fixos
+      if (email === "admin@admin.com" && senha === "0000") {
+        alert("Login realizado com sucesso!");
+        modal.close();
+      } else {
+        alert("Login ou senha incorretos.");
+      }
+    });
+  }
+});
 
 
 
