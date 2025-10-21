@@ -1,320 +1,218 @@
-//modal de login
-function abrirLogin() { 
-    const modal = document.getElementById("modalLogin");
-    if (modal && typeof modal.showModal === "function") { 
-        modal.showModal();
-    } else {
-        alert("Modal não suportado neste navegador");
+/* script.js — rotas dinâmicas (objetos), login (admin/admin1234), pesquisa, solicitar, criar rota, histórico e toast */
+
+(function(){
+  // estado
+  let usuarioAtual = null;
+  let ultimoFiltroPesquisa = null;
+  const reservas = [];
+  const rotas = []; // agora armazena objetos { rota, motorista, aluno, responsavel, data, hora, ... }
+
+  // helpers
+  function dadosDoForm(form){ return Object.fromEntries(new FormData(form).entries()); }
+
+  // toast
+  let __toastTimer = null;
+  function mostrarToast(mensagem, tipo = 'ok') {
+    try {
+      const $toast = document.getElementById('toast');
+      if (!$toast) { alert(mensagem); return; }
+
+      // limpa classes anteriores
+      $toast.classList.remove('warn', 'err', 'visivel');
+      if (tipo === 'warn') $toast.classList.add('warn');
+      if (tipo === 'err')  $toast.classList.add('err');
+
+      $toast.textContent = mensagem;
+
+      // força reflow para garantir animação
+      void $toast.offsetWidth;
+
+      // mostra
+      $toast.classList.add('visivel');
+
+      // agenda esconder
+      if (__toastTimer) clearTimeout(__toastTimer);
+      __toastTimer = setTimeout(() => {
+        $toast.classList.remove('visivel');
+        __toastTimer = null;
+      }, 3500);
+    } catch (err) {
+      // fallback seguro
+      try { alert(mensagem); } catch (_) { /* ignorar */ }
+      console.error('Erro em mostrarToast:', err);
     }
-}
+  }
 
-    //rola suavemente até o formulario rápido
-function rolarParaRapido() {
-    const formRapido = document.querySelector(".formRapido");
-    if(formRapido){
-        formRapido.scrollIntoView({behavior:"smooth",block:"start"});
-    }
-}
-
-//validação simples da reserva rápida
-(function iniciarValidacao(){
-    const formRapido = document.querySelector(".formRapido");
-
-    if(!formRapido) return;
-
-    const seletorRecurso = formRapido.querySelector("select");
-    const campoData = formRapido.querySelector('input[type="date"]');
-    const campoInicio = formRapido.querySelector('input[placeholder="Início"]');
-    const campoFim = formRapido.querySelector('input[placeholder="fim"]');
-
-    //remover a marcação de erro ao digitar
-    [seletorRecurso, campoData, campoInicio, campoFim].forEach(el=>{
-        if(!el) return;
-        el.addEventListener("input", ()=>el.style.borderColor="");
-        el.addEventListener("change", ()=>el.style.borderColor="");
-    });
-
-    formRapido.addEventListener("submit", (event)=>{
-        event.preventDefault();
-    
-        let valido =true;
-        if(seletorRecurso && seletorRecurso.selectedIndex ===0){
-            seletorRecurso.style.borderColor="red";
-            valido = false;
-        }
-
-        //valida data
-        if(campoData && !campoData.value){
-            campoData.style.borderColor="red";
-            valido = false;
-        }
-
-        //validar horarios
-        const hInicio = campoInicio?.value || '';
-        const hFim = campoFim?.value || ''; 
-
-        if(!hInicio){
-            campoInicio.style.borderColor="red";
-            valido = false;
-        }
-
-        if(!hFim){
-            campoFim.style.borderColor="red";
-            valido = false;
-        }
-
-        if(hInicio && hFim && hInicio >= hFim){
-            campoInicio.style.borderColor="red";
-            campoFim.style.borderColor="red";
-            alert("Horário final deve ser maior que o horário inicial");
-            return;
-        }
-    })
-
-})();
-
-// Gerenciamento de Rotas
-(function iniciarRotas() {
-    let rotas = [];
-    let editIndex = null;
-
-    const formRota = document.getElementById('formRota');
-    const nomeRota = document.getElementById('nomeRota');
-    const origemRota = document.getElementById('origemRota');
-    const destinoRota = document.getElementById('destinoRota');
-    const listaRotas = document.getElementById('listaRotas');
-
-    function renderRotas() {
-        if (!listaRotas) return;
-        listaRotas.innerHTML = '';
-        rotas.forEach((rota, idx) => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <strong>${rota.nome}</strong> | Origem: ${rota.origem} | Destino: ${rota.destino}
-                <button onclick="editarRota(${idx})">Editar</button>
-                <button onclick="excluirRota(${idx})">Excluir</button>
-            `;
-            listaRotas.appendChild(li);
-        });
-    }
-
-    window.editarRota = function(idx) {
-        if (!rotas[idx]) return;
-        nomeRota.value = rotas[idx].nome;
-        origemRota.value = rotas[idx].origem;
-        destinoRota.value = rotas[idx].destino;
-        editIndex = idx;
-    };
-
-    window.excluirRota = function(idx) {
-        rotas.splice(idx, 1);
-        renderRotas();
-    };
-
-    if (formRota) {
-        formRota.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const nome = nomeRota.value.trim();
-            const origem = origemRota.value.trim();
-            const destino = destinoRota.value.trim();
-
-            let valido = true;
-            [nomeRota, origemRota, destinoRota].forEach(el => el.style.borderColor = "");
-            if (!nome) { nomeRota.style.borderColor = "red"; valido = false; }
-            if (!origem) { origemRota.style.borderColor = "red"; valido = false; }
-            if (!destino) { destinoRota.style.borderColor = "red"; valido = false; }
-            if (!valido) {
-                alert("Por favor, preencha todos os campos da rota.");
-                return;
-            }
-
-            if (editIndex !== null) {
-                rotas[editIndex] = { nome, origem, destino };
-                editIndex = null;
-            } else {
-                rotas.push({ nome, origem, destino });
-                alert("Rota adicionada com sucesso!");
-            }
-            formRota.reset();
-            renderRotas();
-        });
-    }
-
-    renderRotas();
-})();
-
-// Gerenciamento de Alunos
-(function iniciarAlunos() {
-    let alunos = [];
-    const formAluno = document.getElementById('formAluno');
-    const nomeAluno = document.getElementById('nomeAluno');
-    const rotaAluno = document.getElementById('rotaAluno');
-    const listaAlunos = document.getElementById('listaAlunos');
-
-    function renderAlunos() {
-        if (!listaAlunos) return;
-        listaAlunos.innerHTML = '';
-        alunos.forEach((aluno, idx) => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <strong>${aluno.nome}</strong> | Rota: ${aluno.rota}
-                <button onclick="excluirAluno(${idx})">Excluir</button>
-            `;
-            listaAlunos.appendChild(li);
-        });
-    }
-
-    window.excluirAluno = function(idx) {
-        alunos.splice(idx, 1);
-        renderAlunos();
-    };
-
-    if (formAluno) {
-        formAluno.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const nome = nomeAluno.value.trim();
-            const rota = rotaAluno.value.trim();
-
-            let valido = true;
-            [nomeAluno, rotaAluno].forEach(el => el.style.borderColor = "");
-            if (!nome) { nomeAluno.style.borderColor = "red"; valido = false; }
-            if (!rota) { rotaAluno.style.borderColor = "red"; valido = false; }
-            if (!valido) {
-                alert("Por favor, preencha todos os campos do aluno.");
-                return;
-            }
-
-            alunos.push({ nome, rota });
-            formAluno.reset();
-            renderAlunos();
-        });
-    }
-
-    renderAlunos();
-})();
-
-// Gerenciamento de Responsáveis
-(function iniciarResponsaveis() {
-    let responsaveis = [];
-    const formResponsavel = document.getElementById('formResponsavel');
-    const nomeResponsavel = document.getElementById('nomeResponsavel');
-    const alunoResponsavel = document.getElementById('alunoResponsavel');
-    const listaResponsaveis = document.getElementById('listaResponsaveis');
-
-    function renderResponsaveis() {
-        if (!listaResponsaveis) return;
-        listaResponsaveis.innerHTML = '';
-        responsaveis.forEach((resp, idx) => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <strong>${resp.nome}</strong> | Aluno: ${resp.aluno}
-                <button onclick="excluirResponsavel(${idx})">Excluir</button>
-            `;
-            listaResponsaveis.appendChild(li);
-        });
-    }
-
-    window.excluirResponsavel = function(idx) {
-        responsaveis.splice(idx, 1);
-        renderResponsaveis();
-    };
-
-    if (formResponsavel) {
-        formResponsavel.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const nome = nomeResponsavel.value.trim();
-            const aluno = alunoResponsavel.value.trim();
-
-            let valido = true;
-            [nomeResponsavel, alunoResponsavel].forEach(el => el.style.borderColor = "");
-            if (!nome) { nomeResponsavel.style.borderColor = "red"; valido = false; }
-            if (!aluno) { alunoResponsavel.style.borderColor = "red"; valido = false; }
-            if (!valido) {
-                alert("Por favor, preencha todos os campos do responsável.");
-                return;
-            }
-
-            responsaveis.push({ nome, aluno });
-            formResponsavel.reset();
-            renderResponsaveis();
-        });
-    }
-
-    renderResponsaveis();
-})();
-
-// Gerenciamento de Motoristas
-(function iniciarMotoristas() {
-    let motoristas = [];
-    const formMotorista = document.getElementById('formMotorista');
-    const nomeMotorista = document.getElementById('nomeMotorista');
-    const rotaMotorista = document.getElementById('rotaMotorista');
-    const listaMotoristas = document.getElementById('listaMotoristas');
-
-    function renderMotoristas() {
-        if (!listaMotoristas) return;
-        listaMotoristas.innerHTML = '';
-        motoristas.forEach((mot, idx) => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <strong>${mot.nome}</strong> | Rota: ${mot.rota}
-                <button onclick="excluirMotorista(${idx})">Excluir</button>
-            `;
-            listaMotoristas.appendChild(li);
-        });
-    }
-
-    window.excluirMotorista = function(idx) {
-        motoristas.splice(idx, 1);
-        renderMotoristas();
-    };
-
-    if (formMotorista) {
-        formMotorista.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const nome = nomeMotorista.value.trim();
-            const rota = rotaMotorista.value.trim();
-
-            let valido = true;
-            [nomeMotorista, rotaMotorista].forEach(el => el.style.borderColor = "");
-            if (!nome) { nomeMotorista.style.borderColor = "red"; valido = false; }
-            if (!rota) { rotaMotorista.style.borderColor = "red"; valido = false; }
-            if (!valido) {
-                alert("Por favor, preencha todos os campos do motorista.");
-                return;
-            }
-
-            motoristas.push({ nome, rota });
-            formMotorista.reset();
-            renderMotoristas();
-        });
-    }
-
-    renderMotoristas();
-})();
-
-document.addEventListener("DOMContentLoaded", function() {
-  const modal = document.getElementById("modalLogin");
-  const emailInput = document.getElementById("loginEmail");
-  const senhaInput = document.getElementById("loginSenha");
-  const form = modal?.querySelector("form");
-
-  if (form) {
-    form.addEventListener("submit", function(e) {
-      e.preventDefault();
-      const email = emailInput.value.trim();
-      const senha = senhaInput.value.trim();
-
-      // Login e senha fixos
-      if (email === "admin@admin.com" && senha === "0000") {
-        alert("Login realizado com sucesso!");
-        modal.close();
-      } else {
-        alert("Login ou senha incorretos.");
-      }
+  // atualiza select de rotas (usa nome da rota)
+  function atualizarRotasDisponiveis(){
+    const sel = document.getElementById('campoRecurso');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Selecione uma rota (cadastre primeiro)</option>';
+    rotas.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.rota;
+      opt.textContent = r.rota;
+      sel.appendChild(opt);
     });
   }
-});
 
+  // mostra detalhes num painel
+  function mostrarDetalhesRota(matches){
+    const painel = document.getElementById('detalhesRota');
+    if (!painel) return;
+    if (!matches || matches.length === 0) {
+      painel.classList.add('oculto');
+      painel.innerHTML = '';
+      return;
+    }
+    // mostra primeiro resultado e informa se há mais
+    const r = matches[0];
+    const quando = (r.data && r.hora) ? `${r.data} às ${r.hora}` : 'Horário não especificado';
+    let html = `<h3 style="margin-top:0">${r.rota}</h3>
+                <p><strong>Motorista:</strong> ${r.motorista}<br>
+                <strong>Aluno:</strong> ${r.aluno}<br>
+                <strong>Responsável:</strong> ${r.responsavel}<br>
+                <strong>Data/Hora:</strong> ${quando}</p>`;
+    if (matches.length > 1) {
+      html += `<p class="textoMutado">(${matches.length} registros com esse nome — exibindo o mais recente)</p>`;
+    }
+    painel.innerHTML = html;
+    painel.classList.remove('oculto');
+  }
+
+  // histórico (mantém como estava)
+  function renderItemReserva(item, idx){
+    const li = document.createElement('li');
+    const quando = (item.data && item.hora) ? new Date(`${item.data}T${item.hora}`).toLocaleString('pt-BR') : '';
+    const titulo = item.rota || item.recurso || '—';
+    const tipo = item.tipo || 'registro';
+    const status = item.status || 'pendente';
+    const statusLabel = status === 'aprovada' ? '✅ Aprovada' : status === 'registrada' ? '📌 Registrada' : status === 'pendente' ? '⏳ Pendente' : status === 'cancelada' ? '❌ Cancelada' : status;
+    li.innerHTML = `<span><strong>${titulo}</strong> ${quando ? '— ' + quando : ''}<br><small class="textoMutado">${tipo}${item.motorista ? ' • Motorista: '+item.motorista : ''}${item.aluno ? ' • Aluno: '+item.aluno : ''}</small></span><span data-idx="${idx}">${statusLabel}</span>`;
+    li.style.cursor = 'pointer';
+    li.addEventListener('click', () => {
+      if (!usuarioAtual) { mostrarToast('Faça login para modificar histórico.', 'warn'); return; }
+      if (!usuarioAtual.admin){ mostrarToast('Apenas admin pode cancelar neste demo.', 'warn'); return; }
+      if (item.status === 'cancelada'){ mostrarToast('Já cancelado.'); return; }
+      item.status = 'cancelada';
+      atualizarHistorico();
+      mostrarToast('Cancelado com sucesso.', 'warn');
+    });
+    return li;
+  }
+  function atualizarHistorico(){
+    const listaReservas = document.getElementById('listaReservas');
+    if (!listaReservas) return;
+    listaReservas.innerHTML = '';
+    reservas.slice().reverse().forEach((r, i) => {
+      const idx = reservas.length - 1 - i;
+      listaReservas.appendChild(renderItemReserva(r, idx));
+    });
+  }
+
+  // navegação simples
+  function irPara(hash){ location.hash = hash; }
+
+  // init after DOM loaded
+  document.addEventListener('DOMContentLoaded', () => {
+    const formLogin = document.getElementById('formLogin');
+    const formPesquisa = document.getElementById('formPesquisa');
+    const formSolicitar = document.getElementById('formSolicitar');
+    const formRota = document.getElementById('formRota');
+
+    // inicializa select (vazio)
+    atualizarRotasDisponiveis();
+    mostrarDetalhesRota([]); // esconde painel
+
+    // login
+    formLogin?.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const { usuario, senha } = dadosDoForm(formLogin);
+      if (!usuario || (senha||'').length < 3){ mostrarToast('Usuário/senha inválidos (mín. 3 caracteres).','warn'); return; }
+      if (usuario === 'admin' && senha === 'admin1234'){
+        usuarioAtual = { login:'admin', professor:true, admin:true };
+        mostrarToast('Logado como admin (demo).');
+      } else {
+        usuarioAtual = { login: usuario, professor: /prof/i.test(usuario), admin: false };
+        mostrarToast(`Bem-vindo, ${usuarioAtual.login}!`);
+      }
+      irPara('#secPesquisa');
+    });
+
+    // pesquisa: agora mostra detalhes da rota selecionada
+    formPesquisa?.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      if (!usuarioAtual){ mostrarToast('Faça login antes de pesquisar.','warn'); irPara('#secLogin'); return; }
+      const { recurso } = dadosDoForm(formPesquisa);
+      if (!recurso){ mostrarToast('Selecione uma rota para pesquisar.','warn'); return; }
+
+      // encontra rotas cadastradas com esse nome (mais recentes primeiro)
+      const matches = rotas.filter(r => r.rota === recurso).sort((a,b) => (b.criadoEm || '') > (a.criadoEm || '') ? 1 : -1);
+      if (matches.length === 0){
+        mostrarToast('Nenhuma rota cadastrada com esse nome.', 'warn');
+        mostrarDetalhesRota([]);
+        return;
+      }
+
+      // exibe toast com resumo rápido e detalhes no painel
+      const first = matches[0];
+      const resumo = `${first.rota} • Motorista: ${first.motorista} • Aluno: ${first.aluno} • ${first.data || ''} ${first.hora || ''}`;
+      mostrarToast(resumo);
+      mostrarDetalhesRota(matches);
+
+      // guarda seleção para solicitar vaga
+      ultimoFiltroPesquisa = { recurso: first.rota, rotaId: first.criadoEm };
+      irPara('#secSolicitar');
+    });
+
+    // solicitar vaga (mantém comportamento)
+    formSolicitar?.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      if (!usuarioAtual){ mostrarToast('Faça login antes de solicitar.','warn'); irPara('#secLogin'); return; }
+      if (!ultimoFiltroPesquisa){ mostrarToast('Pesquise a rota antes de solicitar vaga.','warn'); irPara('#secPesquisa'); return; }
+      const { justificativa } = dadosDoForm(formSolicitar);
+      if (!justificativa){ mostrarToast('Descreva a justificativa.','warn'); return; }
+      const status = (usuarioAtual.professor || usuarioAtual.admin) ? 'aprovada' : 'pendente';
+      const nova = { ...ultimoFiltroPesquisa, justificativa, status, autor: usuarioAtual.login, tipo:'vaga' };
+      reservas.push(nova);
+      atualizarHistorico();
+      mostrarToast(status === 'aprovada' ? 'Vaga aprovada automaticamente.' : 'Solicitação enviada.');
+      formSolicitar.reset();
+      irPara('#secHistorico');
+    });
+
+    // criar rota -> adiciona ao array rotas (objeto) e atualiza select
+    formRota?.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const { motorista, aluno, rota, responsavel, data, hora } = dadosDoForm(formRota);
+      if (!motorista || !aluno || !rota || !responsavel || !data || !hora){
+        mostrarToast('Preencha todos os campos da rota (incluindo data e hora).','warn');
+        return;
+      }
+      const rotaObj = {
+        motorista,
+        aluno,
+        rota,
+        responsavel,
+        data,
+        hora,
+        criadoEm: new Date().toISOString(), // id de criação
+        tipo:'rota',
+        status:'registrada'
+      };
+      // registra rota no histórico e na lista de rotas
+      reservas.push(rotaObj);
+      if (!rotas.some(r => r.rota === rota && r.data === data && r.hora === hora)) rotas.push(rotaObj);
+      atualizarRotasDisponiveis();
+      atualizarHistorico();
+      mostrarToast(`Rota "${rota}" criada para ${data} às ${hora}. Agora disponível na pesquisa.`);
+      formRota.reset();
+      irPara('#secHistorico');
+    });
+
+    // inicializa histórico
+    atualizarHistorico();
+  });
+})();
 
 

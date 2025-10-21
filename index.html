@@ -4,93 +4,138 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Transporte Escolar</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
   <header>
     <div class="container navPrincipal">
       <div class="marcaSistema">
-        <div class="logoSistema"><img src="img/icon_bus.png" alt="bus"></div>
+        <div class="logoSistema"><img src="img/icon_bus.png" alt="ônibus"></div>
         <h1>Transporte Escolar</h1>
       </div>
       <div class="acoesNav">
-        <button class="botao" onclick="abrirLogin()">Entrar</button>
-        <button class="botao botaoPrimario" onclick="rolarParaRapido()">Nova Rota</button>
+        <a class="botao" href="#secLogin">Entrar</a>
+        <a class="botao botaoPrimario" href="#secRota">Nova Rota</a>
       </div>
     </div>
   </header>
 
   <main class="container">
-    <div class="secaoHero">
-      <div class="cartaoHero">
-        <h2>Gerenciamento de Rotas</h2>
-        <form id="formRota">
-          <input type="text" id="nomeRota" class="entrada" placeholder="Nome da Rota" required>
-          <input type="text" id="origemRota" class="entrada" placeholder="Origem" required>
-          <input type="text" id="destinoRota" class="entrada" placeholder="Destino" required>
-          <button class="botao botaoPrimario" type="submit">Adicionar Rota</button>
-        </form>
-        <ul id="listaRotas"></ul>
-      </div>
-    </div>
-
-    <div class="cartaoHero">
-      <h2>Cadastro de Alunos</h2>
-      <form id="formAluno">
-        <input type="text" id="nomeAluno" class="entrada" placeholder="Nome do Aluno" required>
-        <input type="text" id="rotaAluno" class="entrada" placeholder="Rota do Aluno" required>
-        <button class="botao botaoPrimario" type="submit">Cadastrar Aluno</button>
+    <!-- Seção: Login (div) -->
+    <section id="secLogin" class="cartao" aria-labelledby="titLogin">
+      <h2 id="titLogin">Acesso</h2>
+      <form id="formLogin" class="grade" autocomplete="on">
+        <label>
+          Usuário
+          <input id="campoUsuario" name="usuario" class="entrada" autocomplete="username" required placeholder="usuario ou email">
+        </label>
+        <label>
+          Senha
+          <input id="campoSenha" name="senha" type="password" class="entrada" autocomplete="current-password" required placeholder="senha">
+        </label>
+        <div style="display:flex; gap:10px; justify-content:flex-end; align-items:center">
+          <button class="botao" type="reset">Limpar</button>
+          <button class="botao botaoPrimario" type="submit">Entrar</button>
+        </div>
+        <p class="textoMutado" style="margin-top:8px">Demo: usuário admin / senha <strong>admin1234</strong> (acesso administrativo). Outros usuários: qualquer senha com 3+ caracteres.</p>
       </form>
-      <ul id="listaAlunos"></ul>
-    </div>
+    </section>
 
-    <div class="cartaoHero">
-      <h2>Cadastro de Responsáveis</h2>
-      <form id="formResponsavel">
-        <input type="text" id="nomeResponsavel" class="entrada" placeholder="Nome do Responsável" required>
-        <input type="text" id="alunoResponsavel" class="entrada" placeholder="Aluno Vinculado" required>
-        <button class="botao botaoPrimario" type="submit">Cadastrar Responsável</button>
-      </form>
-      <ul id="listaResponsaveis"></ul>
-    </div>
+    <!-- Seção: Pesquisa / Consulta de Rota -->
+    <section id="secPesquisa" class="cartao" aria-labelledby="titPesquisa">
+      <h2 id="titPesquisa">Pesquisar Rota</h2>
+      <form id="formPesquisa" class="grade duas">
+        <label>
+          Rota
+          <select id="campoRecurso" name="recurso" required>
+            <option value="">Selecione uma rota (cadastre primeiro)</option>
+          </select>
+        </label>
 
-    <div class="cartaoHero">
-      <h2>Cadastro de Motoristas</h2>
-      <form id="formMotorista">
-        <input type="text" id="nomeMotorista" class="entrada" placeholder="Nome do Motorista" required>
-        <input type="text" id="rotaMotorista" class="entrada" placeholder="Rota do Motorista" required>
-        <button class="botao botaoPrimario" type="submit">Cadastrar Motorista</button>
+        <div style="display:flex; justify-content:flex-end; gap:10px">
+          <button class="botao" type="reset">Limpar</button>
+          <button class="botao botaoPrimario" type="submit">Pesquisar</button>
+        </div>
       </form>
-      <ul id="listaMotoristas"></ul>
-    </div>
+
+      <!-- Painel que mostra as informações da rota encontrada -->
+      <div id="detalhesRota" class="cartao textoMutado oculto" style="margin-top:12px"></div>
+
+      <p class="textoMutado">Pesquise a rota (sem data/hora). Depois solicite vaga vinculada à rota selecionada.</p>
+    </section>
+
+    <!-- Seção: Criar Rota (mantém gerenciamento) -->
+    <section id="secRota" class="cartao" aria-labelledby="titRota">
+      <h2 id="titRota">Criar Rota</h2>
+      <form id="formRota" class="grade duas">
+        <label>
+          Motorista
+          <input id="campoMotorista" name="motorista" class="entrada" required>
+        </label>
+        <label>
+          Aluno (passageiro)
+          <input id="campoAluno" name="aluno" class="entrada" required>
+        </label>
+
+        <!-- ADICIONADO: data e hora da rota -->
+        <label>
+          Data da Rota
+          <input id="campoDataRota" name="data" type="date" class="entrada" required>
+        </label>
+        <label>
+          Horário da Rota
+          <input id="campoHoraRota" name="hora" type="time" class="entrada" required>
+        </label>
+
+        <label>
+          Nome da Rota
+          <input id="campoNomeRota" name="rota" class="entrada" required>
+        </label>
+        <label>
+          Responsável
+          <input id="campoResponsavel" name="responsavel" class="entrada" required>
+        </label>
+        <div style="display:flex; justify-content:flex-end; gap:10px">
+          <button class="botao" type="reset">Limpar</button>
+          <button class="botao botaoPrimario" type="submit">Criar Rota</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Seção: Solicitar vaga -->
+    <section id="secSolicitar" class="cartao" aria-labelledby="titSolicitar">
+      <h2 id="titSolicitar">Solicitar Vaga</h2>
+      <form id="formSolicitar" class="grade">
+        <label>
+          Justificativa
+          <input id="campoJustificativa" name="justificativa" class="entrada" placeholder="Por que precisa da vaga?" required>
+        </label>
+        <div style="display:flex; justify-content:flex-end; gap:10px">
+          <button class="botao" type="reset">Limpar</button>
+          <button class="botao botaoPrimario" type="submit">Solicitar vaga</button>
+        </div>
+      </form>
+      <p class="textoMutado">Depois de pesquisar a rota, use este formulário para solicitar uma vaga.</p>
+    </section>
+
+    <!-- Seção: Histórico -->
+    <section id="secHistorico" class="cartao" aria-labelledby="titHistorico">
+      <h2 id="titHistorico">Histórico de Rotas e Solicitações</h2>
+      <ul id="listaReservas" class="lista" aria-live="polite"></ul>
+      <p class="textoMutado">Clique em um item do histórico para simular cancelamento (demo).</p>
+    </section>
   </main>
 
   <footer>
-    <small class="textoMutado">
-      Sprint 1 · Prototipagem de Interface (HTML/CSS). Próximo: modelagem e persistência.
-    </small>
-    <span class="devNome">Desenvolvedor: ALT TAB</span>
+    <small class="textoMutado">Transporte Escolar — fluxo funcional (Login → Pesquisar rota → Solicitar vaga → Histórico).</small>
+    <div><strong>Desenvolvedor: ALT TAB</strong></div>
   </footer>
 
-  <dialog id="modalLogin">
-    <div class="conteudoModal">
-      <header>
-        <h3>Entrar</h3>
-        <p class="textoMutado">Protótipo visual. Implementação de autenticação nas próximas sprints.</p>
-      </header>
-      <form method="dialog">
-        <input class="entrada" type="email" id="loginEmail" placeholder="E-mail" required>
-        <input class="entrada" type="password" id="loginSenha" placeholder="Senha" required>
-        <div style="display:flex; gap:10px; justify-content:flex-end">
-          <button class="botao" type="button" onclick="document.getElementById('modalLogin').close()">Cancelar</button>
-          <button class="botao botaoPrimario" type="submit">Entrar</button>
-        </div>
-      </form>
-    </div>
-  </dialog>
+  <!-- Toast acessível (substitui alerts) -->
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <script src="script.js"></script>
 </body>
