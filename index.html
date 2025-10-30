@@ -1,5 +1,5 @@
 <!-- =========================
-     index.html – Sprint 1
+     index.html – Sprint 1 (Versão Otimizada)
      ========================= -->
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -11,117 +11,102 @@
 </head>
 <body>
   <header>
-    <div class="container navPrincipal">
+    <nav class="container navPrincipal">
       <div class="marcaSistema">
-        <div class="logoSistema"><img src="img/icon_bus.png" alt="ônibus"></div>
+        <img src="img/icon_bus.png" alt="Ícone de ônibus" class="logoSistema">
         <h1>Transporte Escolar</h1>
       </div>
       <div class="acoesNav">
         <a class="botao" href="#secLogin">Entrar</a>
         <a class="botao botaoPrimario" href="#secRota">Nova Rota</a>
       </div>
-    </div>
+    </nav>
   </header>
 
   <main class="container">
-    <!-- Seção: Login (div) -->
+    <!-- 1) Seção: Login -->
     <section id="secLogin" class="cartao" aria-labelledby="titLogin">
       <h2 id="titLogin">Acesso</h2>
       <form id="formLogin" class="grade" autocomplete="on">
-        <label>
-          Usuário
-          <input id="campoUsuario" name="usuario" class="entrada" autocomplete="username" required placeholder="usuario ou email">
-        </label>
-        <label>
-          Senha
-          <input id="campoSenha" name="senha" type="password" class="entrada" autocomplete="current-password" required placeholder="senha">
-        </label>
-        <div style="display:flex; gap:10px; justify-content:flex-end; align-items:center">
+        <label for="campoUsuario">Usuário</label>
+        <input id="campoUsuario" name="usuario" class="entrada" autocomplete="username" required placeholder="usuário ou e-mail">
+
+        <label for="campoSenha">Senha</label>
+        <input id="campoSenha" name="senha" type="password" class="entrada" autocomplete="current-password" required placeholder="senha">
+
+        <div class="botoes">
           <button class="botao" type="reset">Limpar</button>
           <button class="botao botaoPrimario" type="submit">Entrar</button>
         </div>
-        <p class="textoMutado" style="margin-top:8px">Demo: usuário admin / senha <strong>admin1234</strong> (acesso administrativo). Outros usuários: qualquer senha com 3+ caracteres.</p>
+
+        <p class="textoMutado">Demo: usuário <strong>admin</strong> / senha <strong>admin1234</strong> (acesso administrativo).</p>
       </form>
     </section>
 
-    <!-- Seção: Pesquisa / Consulta de Rota -->
-    <section id="secPesquisa" class="cartao" aria-labelledby="titPesquisa">
-      <h2 id="titPesquisa">Pesquisar Rota</h2>
-      <form id="formPesquisa" class="grade duas">
-        <label>
-          Rota
-          <select id="campoRecurso" name="recurso" required>
-            <option value="">Selecione uma rota (cadastre primeiro)</option>
-          </select>
-        </label>
-
-        <div style="display:flex; justify-content:flex-end; gap:10px">
-          <button class="botao" type="reset">Limpar</button>
-          <button class="botao botaoPrimario" type="submit">Pesquisar</button>
-        </div>
-      </form>
-
-      <!-- Painel que mostra as informações da rota encontrada -->
-      <div id="detalhesRota" class="cartao textoMutado oculto" style="margin-top:12px"></div>
-
-      <p class="textoMutado">Pesquise a rota (sem data/hora). Depois solicite vaga vinculada à rota selecionada.</p>
-    </section>
-
-    <!-- Seção: Criar Rota (mantém gerenciamento) -->
+    <!-- 2) Seção: Criar Rota -->
     <section id="secRota" class="cartao" aria-labelledby="titRota">
       <h2 id="titRota">Criar Rota</h2>
       <form id="formRota" class="grade duas">
-        <label>
-          Motorista
-          <input id="campoMotorista" name="motorista" class="entrada" required>
-        </label>
-        <label>
-          Aluno (passageiro)
-          <input id="campoAluno" name="aluno" class="entrada" required>
-        </label>
+        <label for="campoMotorista">Motorista</label>
+        <input id="campoMotorista" name="motorista" class="entrada" required>
 
-        <!-- ADICIONADO: data e hora da rota -->
-        <label>
-          Data da Rota
-          <input id="campoDataRota" name="data" type="date" class="entrada" required>
-        </label>
-        <label>
-          Horário da Rota
-          <input id="campoHoraRota" name="hora" type="time" class="entrada" required>
-        </label>
+        <label for="campoAluno">Aluno (passageiro)</label>
+        <input id="campoAluno" name="aluno" class="entrada" required>
 
-        <label>
-          Nome da Rota
-          <input id="campoNomeRota" name="rota" class="entrada" required>
-        </label>
-        <label>
-          Responsável
-          <input id="campoResponsavel" name="responsavel" class="entrada" required>
-        </label>
-        <div style="display:flex; justify-content:flex-end; gap:10px">
+        <label for="campoDataRota">Data da Rota</label>
+        <input id="campoDataRota" name="data" type="date" class="entrada" required>
+
+        <label for="campoHoraRota">Horário da Rota</label>
+        <input id="campoHoraRota" name="hora" type="time" class="entrada" required>
+
+        <label for="campoNomeRota">Nome da Rota</label>
+        <input id="campoNomeRota" name="rota" class="entrada" required>
+
+        <label for="campoResponsavel">Responsável</label>
+        <input id="campoResponsavel" name="responsavel" class="entrada" required>
+
+        <div class="botoes">
           <button class="botao" type="reset">Limpar</button>
           <button class="botao botaoPrimario" type="submit">Criar Rota</button>
         </div>
       </form>
     </section>
 
-    <!-- Seção: Solicitar vaga -->
+    <!-- 3) Seção: Pesquisa / Consulta de Rota -->
+    <section id="secPesquisa" class="cartao" aria-labelledby="titPesquisa">
+      <h2 id="titPesquisa">Pesquisar Rota</h2>
+      <form id="formPesquisa" class="grade duas">
+        <label for="campoRecurso">Rota</label>
+        <select id="campoRecurso" name="recurso" required>
+          <option value="">Selecione uma rota (cadastre primeiro)</option>
+        </select>
+
+        <div class="botoes">
+          <button class="botao" type="reset">Limpar</button>
+          <button class="botao botaoPrimario" type="submit">Pesquisar</button>
+        </div>
+      </form>
+
+      <div id="detalhesRota" class="cartao textoMutado oculto"></div>
+      <p class="textoMutado">Pesquise a rota (sem data/hora). Depois solicite vaga vinculada à rota selecionada.</p>
+    </section>
+
+    <!-- 4) Seção: Solicitar vaga -->
     <section id="secSolicitar" class="cartao" aria-labelledby="titSolicitar">
       <h2 id="titSolicitar">Solicitar Vaga</h2>
       <form id="formSolicitar" class="grade">
-        <label>
-          Justificativa
-          <input id="campoJustificativa" name="justificativa" class="entrada" placeholder="Por que precisa da vaga?" required>
-        </label>
-        <div style="display:flex; justify-content:flex-end; gap:10px">
+        <label for="campoJustificativa">Justificativa</label>
+        <input id="campoJustificativa" name="justificativa" class="entrada" placeholder="Por que precisa da vaga?" required>
+
+        <div class="botoes">
           <button class="botao" type="reset">Limpar</button>
-          <button class="botao botaoPrimario" type="submit">Solicitar vaga</button>
+          <button class="botao botaoPrimario" type="submit">Solicitar Vaga</button>
         </div>
       </form>
       <p class="textoMutado">Depois de pesquisar a rota, use este formulário para solicitar uma vaga.</p>
     </section>
 
-    <!-- Seção: Histórico -->
+    <!-- 5) Seção: Histórico -->
     <section id="secHistorico" class="cartao" aria-labelledby="titHistorico">
       <h2 id="titHistorico">Histórico de Rotas e Solicitações</h2>
       <ul id="listaReservas" class="lista" aria-live="polite"></ul>
