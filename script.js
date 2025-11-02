@@ -1,185 +1,769 @@
-/* script.js — Transporte Escolar (versão otimizada e limpa)
-   Funções: rotas dinâmicas, login, pesquisa, solicitações, histórico e toast. */
+/* script.js — Transporte Escolar (Sistema Completo Unificado)
+   Gerencia tanto a página de login quanto o sistema principal */
 
-(() => {
-  // Estado global
-  let usuarioAtual = null;
-  let ultimaRotaPesquisada = null;
-  const reservas = [];
-  const rotas = [];
-
-  // Elementos principais (cacheados)
-  const el = id => document.getElementById(id);
-  const toast = el('toast');
-  const selectRotas = el('campoRecurso');
-  const painelDetalhes = el('detalhesRota');
-  const listaHistorico = el('listaReservas');
-
-  // Utilitários
-  const dadosDoForm = form => Object.fromEntries(new FormData(form).entries());
-  const irPara = hash => (location.hash = hash);
-
-  // Toast otimizado
-  let toastTimer = null;
-  function mostrarToast(msg, tipo = 'ok') {
-    if (!toast) return alert(msg);
-    toast.className = `toast ${tipo}`;
-    toast.textContent = msg;
-
-    clearTimeout(toastTimer);
-    void toast.offsetWidth; // força reflow (animação)
-    toast.classList.add('visivel');
-
-    toastTimer = setTimeout(() => toast.classList.remove('visivel'), 3500);
-  }
-
-  // Atualiza o <select> com rotas disponíveis
-  function atualizarSelectRotas() {
-    selectRotas.innerHTML = '<option value="">Selecione uma rota (cadastre primeiro)</option>';
-    rotas.forEach(({ rota }) => {
-      const opt = document.createElement('option');
-      opt.value = opt.textContent = rota;
-      selectRotas.appendChild(opt);
-    });
-  }
-
-  // Mostra detalhes da rota pesquisada
-  function mostrarDetalhes(matches = []) {
-    if (!matches.length) return painelDetalhes.classList.add('oculto');
-
-    const r = matches[0];
-    const quando = r.data && r.hora ? `${r.data} às ${r.hora}` : 'Horário não especificado';
-    painelDetalhes.innerHTML = `
-      <h3>${r.rota}</h3>
-      <p><strong>Motorista:</strong> ${r.motorista}<br>
-      <strong>Aluno:</strong> ${r.aluno}<br>
-      <strong>Responsável:</strong> ${r.responsavel}<br>
-      <strong>Data/Hora:</strong> ${quando}</p>
-      ${matches.length > 1 ? `<p class="textoMutado">(${matches.length} registros — exibindo o mais recente)</p>` : ''}
-    `;
-    painelDetalhes.classList.remove('oculto');
-  }
-
-  // Atualiza lista de histórico
-  function atualizarHistorico() {
-    listaHistorico.innerHTML = '';
-    reservas.slice().reverse().forEach((r, i, arr) => {
-      const idx = arr.length - 1 - i;
-      const quando = r.data && r.hora ? new Date(`${r.data}T${r.hora}`).toLocaleString('pt-BR') : '';
-      const statusIcon = {
-        aprovada: '✅ Aprovada',
-        registrada: '📌 Registrada',
-        pendente: '⏳ Pendente',
-        cancelada: '❌ Cancelada'
-      }[r.status] || r.status;
-
-      const li = document.createElement('li');
-      li.innerHTML = `
-        <span>
-          <strong>${r.rota || r.recurso || '—'}</strong> ${quando ? `— ${quando}` : ''}<br>
-          <small class="textoMutado">${r.tipo || 'registro'}${r.motorista ? ` • Motorista: ${r.motorista}` : ''}${r.aluno ? ` • Aluno: ${r.aluno}` : ''}</small>
-        </span>
-        <span>${statusIcon}</span>
-      `;
-      li.dataset.idx = idx;
-      li.style.cursor = 'pointer';
-      li.onclick = () => cancelarItem(r);
-      listaHistorico.appendChild(li);
-    });
-  }
-
-  // Cancelar rota (somente admin)
-  function cancelarItem(item) {
-    if (!usuarioAtual) return mostrarToast('Faça login para modificar histórico.', 'warn');
-    if (!usuarioAtual.admin) return mostrarToast('Apenas admin pode cancelar.', 'warn');
-    if (item.status === 'cancelada') return mostrarToast('Já cancelado.');
-    item.status = 'cancelada';
-    atualizarHistorico();
-    mostrarToast('Cancelado com sucesso.', 'warn');
-  }
-
-  // Ações de formulário
-  document.addEventListener('DOMContentLoaded', () => {
-    const formLogin = el('formLogin');
-    const formPesquisa = el('formPesquisa');
-    const formSolicitar = el('formSolicitar');
-    const formRota = el('formRota');
-
-    atualizarSelectRotas();
-    mostrarDetalhes([]);
-
-    // LOGIN
-    formLogin?.addEventListener('submit', e => {
-      e.preventDefault();
-      const { usuario, senha } = dadosDoForm(formLogin);
-
-      if (!usuario || senha.length < 3)
-        return mostrarToast('Usuário/senha inválidos (mín. 3 caracteres).', 'warn');
-
-      usuarioAtual =
-        usuario === 'admin' && senha === 'admin1234'
-          ? { login: 'admin', admin: true, professor: true }
-          : { login: usuario, admin: false, professor: /prof/i.test(usuario) };
-
-      mostrarToast(`Bem-vindo, ${usuarioAtual.login}!`);
-      irPara('#secPesquisa');
-    });
-
-    // PESQUISA
-    formPesquisa?.addEventListener('submit', e => {
-      e.preventDefault();
-      if (!usuarioAtual) return mostrarToast('Faça login antes de pesquisar.', 'warn'), irPara('#secLogin');
-
-      const { recurso } = dadosDoForm(formPesquisa);
-      if (!recurso) return mostrarToast('Selecione uma rota para pesquisar.', 'warn');
-
-      const matches = rotas.filter(r => r.rota === recurso).sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
-      if (!matches.length) return mostrarToast('Nenhuma rota encontrada.', 'warn'), mostrarDetalhes([]);
-
-      const r = matches[0];
-      mostrarToast(`${r.rota} • Motorista: ${r.motorista} • Aluno: ${r.aluno}`);
-      mostrarDetalhes(matches);
-
-      ultimaRotaPesquisada = { recurso: r.rota, rotaId: r.criadoEm };
-      irPara('#secSolicitar');
-    });
-
-    // SOLICITAR VAGA
-    formSolicitar?.addEventListener('submit', e => {
-      e.preventDefault();
-      if (!usuarioAtual) return mostrarToast('Faça login antes de solicitar.', 'warn'), irPara('#secLogin');
-      if (!ultimaRotaPesquisada) return mostrarToast('Pesquise a rota antes de solicitar.', 'warn'), irPara('#secPesquisa');
-
-      const { justificativa } = dadosDoForm(formSolicitar);
-      if (!justificativa) return mostrarToast('Descreva a justificativa.', 'warn');
-
-      const status = usuarioAtual.admin || usuarioAtual.professor ? 'aprovada' : 'pendente';
-      reservas.push({ ...ultimaRotaPesquisada, justificativa, status, autor: usuarioAtual.login, tipo: 'vaga' });
-      atualizarHistorico();
-      mostrarToast(status === 'aprovada' ? 'Vaga aprovada automaticamente.' : 'Solicitação enviada.');
-      formSolicitar.reset();
-      irPara('#secHistorico');
-    });
-
-    // CRIAR ROTA
-    formRota?.addEventListener('submit', e => {
-      e.preventDefault();
-      const { motorista, aluno, rota, responsavel, data, hora } = dadosDoForm(formRota);
-      if ([motorista, aluno, rota, responsavel, data, hora].some(v => !v))
-        return mostrarToast('Preencha todos os campos da rota.', 'warn');
-
-      const rotaObj = { motorista, aluno, rota, responsavel, data, hora, criadoEm: new Date().toISOString(), tipo: 'rota', status: 'registrada' };
-
-      reservas.push(rotaObj);
-      if (!rotas.find(r => r.rota === rota && r.data === data && r.hora === hora)) rotas.push(rotaObj);
-
+   (() => {
+    // Chaves do localStorage
+    const STORAGE_KEYS = {
+      MOTORISTAS: 'schoolBus_motoristas',
+      PAIS: 'schoolBus_pais',
+      ALUNOS: 'schoolBus_alunos',
+      ROTAS: 'schoolBus_rotas',
+      SOLICITACOES: 'schoolBus_solicitacoes',
+      USUARIO: 'schoolBus_usuario'
+    };
+  
+    // Estado global
+    let usuarioAtual = null;
+    let motoristas = [];
+    let pais = [];
+    let alunos = [];
+    let rotas = [];
+    let solicitacoes = [];
+  
+    // ============================================
+    // localStorage - Persistência de Dados
+    // ============================================
+    function salvarNoStorage(chave, dados) {
+      try {
+        localStorage.setItem(chave, JSON.stringify(dados));
+      } catch (e) {
+        console.warn('Erro ao salvar no localStorage:', e);
+      }
+    }
+  
+    function carregarDoStorage(chave, padrao = []) {
+      try {
+        const item = localStorage.getItem(chave);
+        return item ? JSON.parse(item) : padrao;
+      } catch (e) {
+        console.warn('Erro ao carregar do localStorage:', e);
+        return padrao;
+      }
+    }
+  
+    function carregarDados() {
+      motoristas = carregarDoStorage(STORAGE_KEYS.MOTORISTAS, []);
+      pais = carregarDoStorage(STORAGE_KEYS.PAIS, []);
+      alunos = carregarDoStorage(STORAGE_KEYS.ALUNOS, []);
+      rotas = carregarDoStorage(STORAGE_KEYS.ROTAS, []);
+      solicitacoes = carregarDoStorage(STORAGE_KEYS.SOLICITACOES, []);
+      usuarioAtual = carregarDoStorage(STORAGE_KEYS.USUARIO, null);
+    }
+  
+    function salvarDados() {
+      salvarNoStorage(STORAGE_KEYS.MOTORISTAS, motoristas);
+      salvarNoStorage(STORAGE_KEYS.PAIS, pais);
+      salvarNoStorage(STORAGE_KEYS.ALUNOS, alunos);
+      salvarNoStorage(STORAGE_KEYS.ROTAS, rotas);
+      salvarNoStorage(STORAGE_KEYS.SOLICITACOES, solicitacoes);
+      if (usuarioAtual) {
+        salvarNoStorage(STORAGE_KEYS.USUARIO, usuarioAtual);
+      }
+    }
+  
+    // ============================================
+    // Utilitários
+    // ============================================
+    const el = id => document.getElementById(id);
+    const toast = el('toast');
+  
+    const dadosDoForm = form => Object.fromEntries(new FormData(form).entries());
+  
+    // Função auxiliar para obter endereço do aluno via responsável
+    function obterEnderecoAluno(aluno) {
+      if (!aluno || !aluno.responsavelId) {
+        return 'Endereço não cadastrado';
+      }
+      const responsavel = pais.find(p => p.id === aluno.responsavelId);
+      if (!responsavel || !responsavel.endereco) {
+        return 'Endereço não cadastrado';
+      }
+      const enderecoCompleto = [
+        responsavel.endereco,
+        responsavel.cidade,
+        responsavel.cep
+      ].filter(Boolean).join(' - ');
+      return enderecoCompleto || 'Endereço não cadastrado';
+    }
+  
+    // Toast otimizado
+    let toastTimer = null;
+    function mostrarToast(msg, tipo = 'ok') {
+      if (!toast) return alert(msg);
+      toast.className = `toast ${tipo}`;
+      toast.textContent = msg;
+      clearTimeout(toastTimer);
+      void toast.offsetWidth;
+      toast.classList.add('visivel');
+      toastTimer = setTimeout(() => toast.classList.remove('visivel'), 3500);
+    }
+  
+    // Função para validar formulário
+    function validarFormulario(form) {
+      const campos = form.querySelectorAll('[required]');
+      const camposVazios = [];
+      
+      campos.forEach(campo => {
+        if (campo.type === 'select-one') {
+          if (!campo.value || campo.value === '') {
+            camposVazios.push(campo.previousElementSibling?.textContent || campo.name);
+          }
+        } else if (campo.tagName === 'TEXTAREA') {
+          if (!campo.value || campo.value.trim() === '') {
+            camposVazios.push(campo.previousElementSibling?.textContent || campo.name);
+          }
+        } else {
+          if (!campo.value || campo.value.trim() === '') {
+            camposVazios.push(campo.previousElementSibling?.textContent || campo.name);
+          }
+        }
+      });
+      
+      if (camposVazios.length > 0) {
+        mostrarToast(`Preencha os seguintes campos: ${camposVazios.join(', ')}`, 'warn');
+        return false;
+      }
+      
+      return true;
+    }
+  
+    // Verificar autenticação
+    function verificarAutenticacao() {
+      if (!usuarioAtual) {
+        window.location.href = 'login.html';
+        return false;
+      }
+      return true;
+    }
+  
+    // ============================================
+    // Sistema de Busca
+    // ============================================
+    function realizarBusca(termo) {
+      if (!termo || termo.trim().length < 2) {
+        return [];
+      }
+      
+      const termoLower = termo.toLowerCase().trim();
+      const resultados = [];
+      
+      // Buscar em motoristas
+      motoristas.forEach(m => {
+        if (
+          m.nome?.toLowerCase().includes(termoLower) ||
+          m.cpf?.toLowerCase().includes(termoLower) ||
+          m.cnh?.toLowerCase().includes(termoLower) ||
+          m.telefone?.toLowerCase().includes(termoLower)
+        ) {
+          resultados.push({
+            tipo: 'Motorista',
+            titulo: m.nome,
+            subtitulo: `CPF: ${m.cpf} • CNH: ${m.cnh}`,
+            id: m.id,
+            dados: m
+          });
+        }
+      });
+      
+      // Buscar em pais/responsáveis
+      pais.forEach(p => {
+        if (
+          p.nome?.toLowerCase().includes(termoLower) ||
+          p.cpf?.toLowerCase().includes(termoLower) ||
+          p.email?.toLowerCase().includes(termoLower) ||
+          p.telefone?.toLowerCase().includes(termoLower) ||
+          p.endereco?.toLowerCase().includes(termoLower) ||
+          p.cidade?.toLowerCase().includes(termoLower)
+        ) {
+          resultados.push({
+            tipo: 'Responsável',
+            titulo: p.nome,
+            subtitulo: `CPF: ${p.cpf} • ${p.email || p.telefone}`,
+            id: p.id,
+            dados: p
+          });
+        }
+      });
+      
+      // Buscar em alunos
+      alunos.forEach(a => {
+        const responsavel = pais.find(p => p.id === a.responsavelId);
+        if (
+          a.nome?.toLowerCase().includes(termoLower) ||
+          a.escola?.toLowerCase().includes(termoLower) ||
+          responsavel?.nome?.toLowerCase().includes(termoLower)
+        ) {
+          resultados.push({
+            tipo: 'Aluno',
+            titulo: a.nome,
+            subtitulo: `Escola: ${a.escola} • Responsável: ${responsavel?.nome || 'N/A'}`,
+            id: a.id,
+            dados: a
+          });
+        }
+      });
+      
+      // Buscar em rotas
+      rotas.forEach(r => {
+        const motorista = motoristas.find(m => m.id === r.motoristaId);
+        if (
+          r.nome?.toLowerCase().includes(termoLower) ||
+          r.origem?.toLowerCase().includes(termoLower) ||
+          r.destino?.toLowerCase().includes(termoLower) ||
+          motorista?.nome?.toLowerCase().includes(termoLower)
+        ) {
+          resultados.push({
+            tipo: 'Rota',
+            titulo: r.nome,
+            subtitulo: `${r.origem} → ${r.destino} • ${r.horario} • Motorista: ${motorista?.nome || 'N/A'}`,
+            id: r.id,
+            dados: r
+          });
+        }
+      });
+      
+      // Buscar em solicitações
+      solicitacoes.forEach(s => {
+        const rota = rotas.find(r => r.id === s.rotaId);
+        const aluno = alunos.find(a => a.id === s.alunoId);
+        if (
+          rota?.nome?.toLowerCase().includes(termoLower) ||
+          aluno?.nome?.toLowerCase().includes(termoLower) ||
+          s.justificativa?.toLowerCase().includes(termoLower)
+        ) {
+          resultados.push({
+            tipo: 'Solicitação',
+            titulo: `${rota?.nome || 'Rota'} - ${aluno?.nome || 'Aluno'}`,
+            subtitulo: `Status: ${s.status} • ${s.justificativa?.substring(0, 50)}...`,
+            id: s.id,
+            dados: s
+          });
+        }
+      });
+      
+      return resultados;
+    }
+  
+    function exibirResultadosBusca(resultados) {
+      const container = el('resultadosBusca');
+      if (!container) return;
+      
+      if (resultados.length === 0) {
+        container.innerHTML = '<div class="resultado-vazio">Nenhum resultado encontrado</div>';
+        container.classList.remove('oculto');
+        return;
+      }
+      
+      container.innerHTML = '';
+      resultados.slice(0, 10).forEach(resultado => {
+        const item = document.createElement('div');
+        item.className = 'resultado-item';
+        item.innerHTML = `
+          <span class="resultado-tipo">${resultado.tipo}</span>
+          <strong>${resultado.titulo}</strong>
+          <small>${resultado.subtitulo}</small>
+        `;
+        item.onclick = () => {
+          container.classList.add('oculto');
+          el('campoBusca').value = '';
+          scrollParaResultado(resultado);
+        };
+        container.appendChild(item);
+      });
+      
+      container.classList.remove('oculto');
+    }
+  
+    function scrollParaResultado(resultado) {
+      switch(resultado.tipo) {
+        case 'Motorista':
+          document.querySelector('#formMotorista')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          break;
+        case 'Responsável':
+          document.querySelector('#formPai')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          break;
+        case 'Aluno':
+          document.querySelector('#formAluno')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          break;
+        case 'Rota':
+          document.querySelector('#formRota')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          break;
+        case 'Solicitação':
+          document.querySelector('#formSolicitar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          break;
+      }
+    }
+  
+    // ============================================
+    // PÁGINA DE LOGIN
+    // ============================================
+    function inicializarLogin() {
+      function verificarLogin() {
+        try {
+          const usuarioSalvo = localStorage.getItem(STORAGE_KEYS.USUARIO);
+          if (usuarioSalvo) {
+            window.location.href = 'index.html';
+          }
+        } catch (e) {
+          console.warn('Erro ao verificar login:', e);
+        }
+      }
+  
+      verificarLogin();
+  
+      const formLogin = el('formLogin');
+      if (!formLogin) return;
+  
+      formLogin.addEventListener('submit', e => {
+        e.preventDefault();
+        const { usuario, senha } = dadosDoForm(formLogin);
+  
+        if (!usuario || !usuario.trim()) {
+          return mostrarToast('Por favor, preencha o campo de usuário.', 'warn');
+        }
+  
+        if (!senha || senha.length < 3) {
+          return mostrarToast('Senha deve ter no mínimo 3 caracteres.', 'warn');
+        }
+  
+        usuarioAtual =
+          usuario === 'admin' && senha === 'admin1234'
+            ? { login: 'admin', admin: true }
+            : { login: usuario, admin: false };
+  
+        try {
+          salvarNoStorage(STORAGE_KEYS.USUARIO, usuarioAtual);
+          mostrarToast(`Bem-vindo, ${usuarioAtual.login}! Redirecionando...`);
+          
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 1000);
+        } catch (e) {
+          console.warn('Erro ao salvar login:', e);
+          mostrarToast('Erro ao fazer login. Tente novamente.', 'err');
+        }
+      });
+    }
+  
+    // ============================================
+    // Atualização de Selects
+    // ============================================
+    function atualizarSelectPais() {
+      const select = el('campoResponsavelAluno');
+      if (!select) return;
+      select.innerHTML = '<option value="">Selecione um responsável</option>';
+      pais.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.nome} (${p.cpf})`;
+        select.appendChild(opt);
+      });
+    }
+  
+    function atualizarSelectMotoristas() {
+      const select = el('campoMotoristaRota');
+      if (!select) return;
+      select.innerHTML = '<option value="">Selecione um motorista</option>';
+      motoristas.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = `${m.nome} (${m.cnh})`;
+        select.appendChild(opt);
+      });
+    }
+  
+    function atualizarSelectRotas() {
+      const select = el('campoRotaSolicitar');
+      if (!select) return;
+      select.innerHTML = '<option value="">Selecione uma rota</option>';
+      rotas.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = `${r.nome} - ${r.origem} → ${r.destino} (${r.horario})`;
+        select.appendChild(opt);
+      });
+    }
+  
+    function atualizarSelectAlunos() {
+      const select = el('campoAlunoSolicitar');
+      if (!select) return;
+      select.innerHTML = '<option value="">Selecione um aluno</option>';
+      alunos.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a.id;
+        opt.textContent = `${a.nome} - ${a.escola}`;
+        select.appendChild(opt);
+      });
+    }
+  
+    // ============================================
+    // Renderização de Listas
+    // ============================================
+    function renderizarMotoristas() {
+      const lista = el('listaMotoristas');
+      if (!lista) return;
+      lista.innerHTML = '';
+      if (motoristas.length === 0) {
+        lista.innerHTML = '<li class="textoMutado">Nenhum motorista cadastrado</li>';
+        return;
+      }
+      motoristas.forEach(m => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span>
+            <strong>${m.nome}</strong><br>
+            <small class="textoMutado">CPF: ${m.cpf} • CNH: ${m.cnh} • Tel: ${m.telefone}</small>
+          </span>
+          <button class="botao botaoPerigo" onclick="window.excluirMotorista('${m.id}')">Excluir</button>
+        `;
+        lista.appendChild(li);
+      });
+    }
+  
+    function renderizarPais() {
+      const lista = el('listaPais');
+      if (!lista) return;
+      lista.innerHTML = '';
+      if (pais.length === 0) {
+        lista.innerHTML = '<li class="textoMutado">Nenhum responsável cadastrado</li>';
+        return;
+      }
+      pais.forEach(p => {
+        const li = document.createElement('li');
+        const enderecoCompleto = p.endereco ? `${p.endereco}${p.cidade ? ' - ' + p.cidade : ''}${p.cep ? ' - CEP: ' + p.cep : ''}`.trim() : 'Endereço não informado';
+        li.innerHTML = `
+          <span>
+            <strong>${p.nome}</strong><br>
+            <small class="textoMutado">CPF: ${p.cpf} • Tel: ${p.telefone} • Email: ${p.email}<br>
+            Endereço: ${enderecoCompleto}</small>
+          </span>
+          <button class="botao botaoPerigo" onclick="window.excluirPai('${p.id}')">Excluir</button>
+        `;
+        lista.appendChild(li);
+      });
+    }
+  
+    function renderizarAlunos() {
+      const lista = el('listaAlunos');
+      if (!lista) return;
+      lista.innerHTML = '';
+      if (alunos.length === 0) {
+        lista.innerHTML = '<li class="textoMutado">Nenhum aluno cadastrado</li>';
+        return;
+      }
+      alunos.forEach(a => {
+        const responsavel = pais.find(p => p.id === a.responsavelId);
+        const endereco = obterEnderecoAluno(a);
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span>
+            <strong>${a.nome}</strong> (${a.idade} anos)<br>
+            <small class="textoMutado">Escola: ${a.escola} • Responsável: ${responsavel ? responsavel.nome : 'N/A'}<br>
+            Endereço: ${endereco}</small>
+          </span>
+          <button class="botao botaoPerigo" onclick="window.excluirAluno('${a.id}')">Excluir</button>
+        `;
+        lista.appendChild(li);
+      });
+    }
+  
+    function renderizarRotas() {
+      const lista = el('listaRotas');
+      if (!lista) return;
+      lista.innerHTML = '';
+      if (rotas.length === 0) {
+        lista.innerHTML = '<li class="textoMutado">Nenhuma rota cadastrada</li>';
+        return;
+      }
+      rotas.forEach(r => {
+        const motorista = motoristas.find(m => m.id === r.motoristaId);
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span>
+            <strong>${r.nome}</strong><br>
+            <small class="textoMutado">${r.origem} → ${r.destino} • ${r.horario} • ${r.vagas} vagas • Motorista: ${motorista ? motorista.nome : 'N/A'}</small>
+          </span>
+          <button class="botao botaoPerigo" onclick="window.excluirRota('${r.id}')">Excluir</button>
+        `;
+        lista.appendChild(li);
+      });
+    }
+  
+    function renderizarSolicitacoes() {
+      const lista = el('listaSolicitacoes');
+      if (!lista) return;
+      lista.innerHTML = '';
+      if (solicitacoes.length === 0) {
+        lista.innerHTML = '<li class="textoMutado">Nenhuma solicitação</li>';
+        return;
+      }
+      solicitacoes.forEach(s => {
+        const rota = rotas.find(r => r.id === s.rotaId);
+        const aluno = alunos.find(a => a.id === s.alunoId);
+        const endereco = aluno ? obterEnderecoAluno(aluno) : 'N/A';
+        const statusIcon = {
+          aprovada: '✅ Aprovada',
+          pendente: '⏳ Pendente',
+          confirmada: '✅ Confirmada',
+          negada: '❌ Negada'
+        }[s.status] || s.status;
+        
+        const li = document.createElement('li');
+        const botoes = s.status === 'pendente' 
+          ? `<button class="botao botaoSucesso" onclick="window.confirmarSolicitacao('${s.id}')">Confirmar</button>
+             <button class="botao botaoPerigo" onclick="window.excluirSolicitacao('${s.id}')">Excluir</button>`
+          : `<button class="botao botaoPerigo" onclick="window.excluirSolicitacao('${s.id}')">Excluir</button>`;
+        
+        li.innerHTML = `
+          <span>
+            <strong>${rota ? rota.nome : 'Rota não encontrada'}</strong><br>
+            <small class="textoMutado">Aluno: ${aluno ? aluno.nome : 'N/A'} • ${statusIcon}<br>
+            Endereço: ${endereco}<br>
+            Justificativa: ${s.justificativa}</small>
+          </span>
+          <div style="display: flex; gap: 8px;">
+            ${botoes}
+          </div>
+        `;
+        lista.appendChild(li);
+      });
+    }
+  
+    function atualizarTudo() {
+      renderizarMotoristas();
+      renderizarPais();
+      renderizarAlunos();
+      renderizarRotas();
+      renderizarSolicitacoes();
+      atualizarSelectPais();
+      atualizarSelectMotoristas();
       atualizarSelectRotas();
-      atualizarHistorico();
-      mostrarToast(`Rota "${rota}" criada para ${data} às ${hora}.`);
-      formRota.reset();
-      irPara('#secHistorico');
-    });
+      atualizarSelectAlunos();
+      salvarDados();
+    }
+  
+    // ============================================
+    // Funções de Exclusão e Ação (expostas globalmente)
+    // ============================================
+    window.excluirMotorista = (id) => {
+      if (!confirm('Deseja realmente excluir este motorista?')) return;
+      motoristas = motoristas.filter(m => m.id !== id);
+      rotas = rotas.filter(r => r.motoristaId !== id);
+      atualizarTudo();
+      mostrarToast('Motorista excluído com sucesso.');
+    };
+  
+    window.excluirPai = (id) => {
+      if (!confirm('Deseja realmente excluir este responsável? Os alunos vinculados serão afetados.')) return;
+      pais = pais.filter(p => p.id !== id);
+      alunos = alunos.filter(a => a.responsavelId !== id);
+      atualizarTudo();
+      mostrarToast('Responsável excluído com sucesso.');
+    };
+  
+    window.excluirAluno = (id) => {
+      if (!confirm('Deseja realmente excluir este aluno?')) return;
+      alunos = alunos.filter(a => a.id !== id);
+      solicitacoes = solicitacoes.filter(s => s.alunoId !== id);
+      atualizarTudo();
+      mostrarToast('Aluno excluído com sucesso.');
+    };
+  
+    window.excluirRota = (id) => {
+      if (!confirm('Deseja realmente excluir esta rota? As solicitações vinculadas serão afetadas.')) return;
+      rotas = rotas.filter(r => r.id !== id);
+      solicitacoes = solicitacoes.filter(s => s.rotaId !== id);
+      atualizarTudo();
+      mostrarToast('Rota excluída com sucesso.');
+    };
+  
+    window.excluirSolicitacao = (id) => {
+      if (!confirm('Deseja realmente excluir esta solicitação?')) return;
+      solicitacoes = solicitacoes.filter(s => s.id !== id);
+      atualizarTudo();
+      mostrarToast('Solicitação excluída com sucesso.');
+    };
+  
+    window.confirmarSolicitacao = (id) => {
+      const solicitacao = solicitacoes.find(s => s.id === id);
+      if (!solicitacao) return;
+      
+      solicitacao.status = 'confirmada';
+      atualizarTudo();
+      mostrarToast('Solicitação confirmada com sucesso!');
+    };
+  
+    // ============================================
+    // SISTEMA PRINCIPAL
+    // ============================================
+    function inicializarSistema() {
+      carregarDados();
+  
+      if (!verificarAutenticacao()) return;
+  
+      if (usuarioAtual && el('usuarioLogado')) {
+        el('usuarioLogado').textContent = `Usuário: ${usuarioAtual.login}`;
+      }
+  
+      // Logout
+      el('btnSair')?.addEventListener('click', () => {
+        usuarioAtual = null;
+        salvarDados();
+        localStorage.removeItem(STORAGE_KEYS.USUARIO);
+        window.location.href = 'login.html';
+      });
+  
+      // Sistema de Busca
+      const campoBusca = el('campoBusca');
+      const resultadosBusca = el('resultadosBusca');
+      
+      if (campoBusca && resultadosBusca) {
+        let buscaTimer = null;
+        
+        campoBusca.addEventListener('input', (e) => {
+          clearTimeout(buscaTimer);
+          const termo = e.target.value;
+          
+          if (termo.length < 2) {
+            resultadosBusca.classList.add('oculto');
+            return;
+          }
+          
+          buscaTimer = setTimeout(() => {
+            const resultados = realizarBusca(termo);
+            exibirResultadosBusca(resultados);
+          }, 300);
+        });
+        
+        // Fechar resultados ao clicar fora
+        document.addEventListener('click', (e) => {
+          if (!campoBusca.contains(e.target) && !resultadosBusca.contains(e.target)) {
+            resultadosBusca.classList.add('oculto');
+          }
+        });
+        
+        // Fechar ao pressionar ESC
+        campoBusca.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            resultadosBusca.classList.add('oculto');
+            campoBusca.blur();
+          }
+        });
+      }
+  
+      // Cadastro Motorista
+      el('formMotorista')?.addEventListener('submit', e => {
+        e.preventDefault();
+        const form = el('formMotorista');
+        if (!validarFormulario(form)) return;
+        
+        const dados = dadosDoForm(form);
+        const novoMotorista = {
+          id: Date.now().toString(),
+          ...dados,
+          criadoEm: new Date().toISOString()
+        };
+        motoristas.push(novoMotorista);
+        atualizarTudo();
+        mostrarToast('Motorista cadastrado com sucesso!');
+        form.reset();
+      });
+  
+      // Cadastro Pai
+      el('formPai')?.addEventListener('submit', e => {
+        e.preventDefault();
+        const form = el('formPai');
+        if (!validarFormulario(form)) return;
+        
+        const dados = dadosDoForm(form);
+        const novoPai = {
+          id: Date.now().toString(),
+          ...dados,
+          criadoEm: new Date().toISOString()
+        };
+        pais.push(novoPai);
+        atualizarTudo();
+        mostrarToast('Responsável cadastrado com sucesso!');
+        form.reset();
+      });
+  
+      // Cadastro Aluno
+      el('formAluno')?.addEventListener('submit', e => {
+        e.preventDefault();
+        const form = el('formAluno');
+        if (!validarFormulario(form)) return;
+        
+        const dados = dadosDoForm(form);
+        const novoAluno = {
+          id: Date.now().toString(),
+          ...dados,
+          criadoEm: new Date().toISOString()
+        };
+        alunos.push(novoAluno);
+        atualizarTudo();
+        mostrarToast('Aluno cadastrado com sucesso!');
+        form.reset();
+      });
+  
+      // Cadastro Rota
+      el('formRota')?.addEventListener('submit', e => {
+        e.preventDefault();
+        const form = el('formRota');
+        if (!validarFormulario(form)) return;
+        
+        const dados = dadosDoForm(form);
+        const novaRota = {
+          id: Date.now().toString(),
+          ...dados,
+          criadoEm: new Date().toISOString()
+        };
+        rotas.push(novaRota);
+        atualizarTudo();
+        mostrarToast('Rota cadastrada com sucesso!');
+        form.reset();
+      });
+  
+      // Solicitar Vaga
+      el('formSolicitar')?.addEventListener('submit', e => {
+        e.preventDefault();
+        const form = el('formSolicitar');
+        if (!validarFormulario(form)) return;
+        
+        const dados = dadosDoForm(form);
+        const novaSolicitacao = {
+          id: Date.now().toString(),
+          ...dados,
+          status: usuarioAtual?.admin ? 'aprovada' : 'pendente',
+          autor: usuarioAtual?.login || 'anônimo',
+          criadoEm: new Date().toISOString()
+        };
+        solicitacoes.push(novaSolicitacao);
+        atualizarTudo();
+        mostrarToast(novaSolicitacao.status === 'aprovada' ? 'Vaga aprovada automaticamente!' : 'Solicitação enviada!');
+        form.reset();
+      });
+  
+      atualizarTudo();
+    }
+  
+    // ============================================
+    // Inicialização baseada na página
+    // ============================================
+    document.addEventListener('DOMContentLoaded', () => {
+      const formLogin = el('formLogin');
+      const sistemaPrincipal = el('sistemaPrincipal');
+  
+      if (formLogin && !sistemaPrincipal) {
+        inicializarLogin();
+      } else if (sistemaPrincipal) {
+        inicializarSistema();
+            // Atualizar ano no footer
+    const anoElement = document.getElementById('anoAtual');
+    if (anoElement) {
+      anoElement.textContent = new Date().getFullYear();
+    }
 
-    atualizarHistorico();
-  });
-})();
+    atualizarTudo();
+      }
+    });
+  })();

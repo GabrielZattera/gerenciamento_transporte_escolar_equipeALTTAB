@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - Transporte Escolar</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div class="pagina-login">
+    <div class="login-container">
+      <div class="login-card">
+        <img src="img/icon_bus.png" alt="Ícone de ônibus" class="logo-login">
+        <h1>Transporte Escolar</h1>
+        <form id="formLogin" class="grade">
+          <label for="campoUsuario">Usuário</label>
+          <input id="campoUsuario" name="usuario" class="entrada" autocomplete="username" required placeholder="usuário ou e-mail">
+          
+          <label for="campoSenha">Senha</label>
+          <input id="campoSenha" name="senha" type="password" class="entrada" autocomplete="current-password" required placeholder="senha">
+          
+          <button class="botao botaoPrimario" type="submit">Entrar</button>
+          
+          <p class="textoMutado">Demo: usuário <strong>admin</strong> / senha <strong>admin1234</strong></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast acessível -->
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
