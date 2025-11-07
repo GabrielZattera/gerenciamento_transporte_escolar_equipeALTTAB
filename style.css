@@ -11,10 +11,11 @@
   --radius: 10px;
   --sombra: 0 8px 30px rgba(0, 0, 0, 0.6);
   --container-width: 1100px;
+  --transition: 0.2s ease;
 }
 
-/* Base */
-* {
+/* Reset e Base */
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
@@ -73,9 +74,9 @@ header {
   height: 32px;
   object-fit: contain;
   display: block;
-  filter: none;
 }
 
+/* Busca */
 .buscaNav {
   position: relative;
   flex: 1;
@@ -94,13 +95,14 @@ header {
   left: 0;
   right: 0;
   background: var(--card);
-  border-radius: 10px;
+  border-radius: var(--radius);
   box-shadow: var(--sombra);
   border: 1px solid rgba(255, 255, 255, 0.05);
   max-height: 400px;
   overflow-y: auto;
   z-index: 1000;
   padding: 8px;
+  display: none;
 }
 
 .resultados-busca.visivel {
@@ -112,7 +114,7 @@ header {
   border-radius: 8px;
   margin-bottom: 4px;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background var(--transition);
   border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
@@ -153,17 +155,18 @@ header {
   text-decoration: none;
 }
 
+/* Botões */
 .botao {
   display: inline-block;
   padding: 9px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: transparent;
   color: var(--text);
   border: 1px solid rgba(255, 255, 255, 0.04);
   cursor: pointer;
   font-weight: 600;
   text-decoration: none;
-  transition: 0.2s ease;
+  transition: var(--transition);
 }
 
 .botao:hover {
@@ -209,14 +212,19 @@ header {
   padding: 18px;
 }
 
-/* Cartões e Seções */
-.cartao {
+/* Cartões */
+.cartao, .cartaoHero {
   background: var(--card);
   padding: 22px;
   border-radius: 14px;
   margin: 20px 0;
   box-shadow: var(--sombra);
   border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.cartaoHero {
+  padding: 20px;
+  margin: 0;
 }
 
 .secaoHero {
@@ -227,10 +235,6 @@ header {
 
 .cartaoHero {
   flex: 1;
-  background: var(--card);
-  padding: 20px;
-  border-radius: var(--radius);
-  box-shadow: var(--sombra);
 }
 
 .selo {
@@ -254,38 +258,50 @@ header {
   gap: 12px;
 }
 
-@media (min-width: 760px) {
-  .grade.duas {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-input.entrada,
-input,
-select,
-textarea {
+input, select, textarea {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.04);
   color: var(--text);
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   outline: none;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
 }
 
-input::placeholder,
-textarea::placeholder {
+input::placeholder, textarea::placeholder {
   color: rgba(255, 255, 255, 0.45);
 }
 
-input:focus,
-select:focus,
-textarea:focus {
+input:focus, select:focus, textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 6px 18px rgba(181, 135, 18, 0.12);
 }
 
-/* Texto e listas */
+/* Select Customizado */
+select, option {
+  background-color: var(--card);
+  color: var(--text);
+}
+
+option:hover, option:checked {
+  background-color: var(--accent-strong);
+  color: #fff;
+}
+
+select {
+  appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' fill='%23d4a620' viewBox='0 0 24 24'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+}
+
+select:focus {
+  box-shadow: 0 0 0 2px rgba(212, 166, 32, 0.3);
+}
+
+/* Listas */
 .textoMutado {
   color: var(--muted);
   font-size: 0.95rem;
@@ -303,7 +319,7 @@ textarea:focus {
 .lista li {
   background: rgba(255, 255, 255, 0.02);
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -344,15 +360,13 @@ textarea:focus {
   color: #fff;
   border-left: 6px solid var(--accent);
   padding: 12px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   opacity: 0;
   transform: translateY(12px);
   transition: opacity 0.18s ease, transform 0.18s ease;
   z-index: 9999;
   pointer-events: none;
-  white-space: normal;
-  text-align: left;
 }
 
 .toast.visivel {
@@ -369,7 +383,7 @@ textarea:focus {
   border-left-color: var(--danger);
 }
 
-/* Footer Profissional */
+/* Footer */
 .footer-profissional {
   width: 100%;
   background: linear-gradient(to top, #000000, #0a0a0a);
@@ -377,10 +391,6 @@ textarea:focus {
   margin-top: 60px;
   padding: 48px 0 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.footer-profissional .container {
-  max-width: var(--container-width);
 }
 
 .footer-content {
@@ -392,8 +402,7 @@ textarea:focus {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.footer-section h3,
-.footer-section h4 {
+.footer-section h3, .footer-section h4 {
   margin: 0 0 20px 0;
   color: var(--text);
   font-size: 1.1rem;
@@ -437,7 +446,7 @@ textarea:focus {
   margin-bottom: 12px;
   color: var(--muted);
   font-size: 0.9rem;
-  transition: color 0.2s ease, transform 0.2s ease;
+  transition: color var(--transition), transform var(--transition);
   cursor: pointer;
 }
 
@@ -455,8 +464,7 @@ textarea:focus {
   padding-top: 24px;
 }
 
-.footer-copyright p,
-.footer-dev p {
+.footer-copyright p, .footer-dev p {
   margin: 0;
   color: var(--muted);
   font-size: 0.85rem;
@@ -467,13 +475,12 @@ textarea:focus {
   font-weight: 600;
 }
 
-/* Página de Login */
+/* Login */
 .pagina-login {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface);
 }
 
 .login-container {
@@ -497,7 +504,55 @@ textarea:focus {
   display: block;
 }
 
+/* Mapa */
+.mapa-container {
+  width: 100%;
+  height: 500px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  background: var(--surface);
+}
+
+.mapa-container .leaflet-container {
+  background: #f5f5f5;
+  height: 100%;
+}
+
+.mapa-container .leaflet-popup-content-wrapper {
+  background: #fff;
+  color: #333;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.mapa-container .leaflet-popup-tip {
+  background: #fff;
+}
+
+.mapa-container .leaflet-control {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+}
+
+.mapa-container .leaflet-control a {
+  color: #333;
+  background: #fff;
+}
+
+.mapa-container .leaflet-control a:hover {
+  background: #f4f4f4;
+}
+
 /* Responsividade */
+@media (min-width: 760px) {
+  .grade.duas {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 @media (max-width: 720px) {
   .secaoHero {
     flex-direction: column;
@@ -529,5 +584,9 @@ textarea:focus {
 
   .footer-profissional {
     padding: 40px 0 20px;
+  }
+
+  .mapa-container {
+    height: 400px;
   }
 }

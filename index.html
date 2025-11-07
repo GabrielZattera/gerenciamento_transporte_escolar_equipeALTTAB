@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Transporte Escolar</title>
   <link rel="stylesheet" href="style.css"/>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""/>
 </head>
 <body>
   <!-- Sistema Principal -->
@@ -138,11 +142,43 @@
             <option value="">Selecione um motorista</option>
           </select>
           
-          <label for="campoOrigemRota">Origem</label>
-          <input id="campoOrigemRota" name="origem" class="entrada" required placeholder="Local de origem">
+          <h3 style="margin-top: 20px; margin-bottom: 10px; color: var(--text); font-size: 1rem;">📍 Endereço de Origem</h3>
+          <label for="campoOrigemRua">Rua</label>
+          <input id="campoOrigemRua" name="origemRua" class="entrada" required placeholder="Ex: Rua Exemplo">
           
-          <label for="campoDestinoRota">Destino</label>
-          <input id="campoDestinoRota" name="destino" class="entrada" required placeholder="Local de destino">
+          <label for="campoOrigemNumero">Número</label>
+          <input id="campoOrigemNumero" name="origemNumero" class="entrada" required placeholder="Ex: 123">
+          
+          <label for="campoOrigemBairro">Bairro</label>
+          <input id="campoOrigemBairro" name="origemBairro" class="entrada" required placeholder="Ex: Centro">
+          
+          <label for="campoOrigemCidade">Cidade</label>
+          <input id="campoOrigemCidade" name="origemCidade" class="entrada" required placeholder="Ex: São Paulo">
+          
+          <label for="campoOrigemEstado">Estado (UF)</label>
+          <input id="campoOrigemEstado" name="origemEstado" class="entrada" required placeholder="Ex: SP" maxlength="2" style="text-transform: uppercase;">
+          
+          <label for="campoOrigemCEP">CEP</label>
+          <input id="campoOrigemCEP" name="origemCEP" class="entrada" required placeholder="Ex: 01000-000" pattern="[0-9]{5}-?[0-9]{3}">
+          
+          <h3 style="margin-top: 20px; margin-bottom: 10px; color: var(--text); font-size: 1rem;">🎯 Endereço de Destino</h3>
+          <label for="campoDestinoRua">Rua</label>
+          <input id="campoDestinoRua" name="destinoRua" class="entrada" required placeholder="Ex: Rua Escola">
+          
+          <label for="campoDestinoNumero">Número</label>
+          <input id="campoDestinoNumero" name="destinoNumero" class="entrada" required placeholder="Ex: 456">
+          
+          <label for="campoDestinoBairro">Bairro</label>
+          <input id="campoDestinoBairro" name="destinoBairro" class="entrada" required placeholder="Ex: Jardim das Flores">
+          
+          <label for="campoDestinoCidade">Cidade</label>
+          <input id="campoDestinoCidade" name="destinoCidade" class="entrada" required placeholder="Ex: São Paulo">
+          
+          <label for="campoDestinoEstado">Estado (UF)</label>
+          <input id="campoDestinoEstado" name="destinoEstado" class="entrada" required placeholder="Ex: SP" maxlength="2" style="text-transform: uppercase;">
+          
+          <label for="campoDestinoCEP">CEP</label>
+          <input id="campoDestinoCEP" name="destinoCEP" class="entrada" required placeholder="Ex: 02000-000" pattern="[0-9]{5}-?[0-9]{3}">
           
           <label for="campoHorarioRota">Horário</label>
           <input id="campoHorarioRota" name="horario" type="time" class="entrada" required>
@@ -160,6 +196,21 @@
           <h3>Rotas Cadastradas</h3>
           <ul id="listaRotas" class="lista"></ul>
         </div>
+      </section>
+
+      <!-- Mapa de Rotas -->
+      <section class="cartao">
+        <h2>Mapa de Rotas</h2>
+        <div style="margin-bottom: 16px;">
+          <label for="seletorRotaMapa">Selecione a rota para visualizar:</label>
+          <select id="seletorRotaMapa" class="entrada" style="margin-top: 8px;">
+            <option value="todas">Todas as Rotas</option>
+          </select>
+        </div>
+        <div id="mapaRotas" class="mapa-container"></div>
+        <p class="textoMutado" style="margin-top: 12px; font-size: 0.9rem;">
+          Visualize as rotas cadastradas no mapa. Os marcadores azuis indicam a origem e os vermelhos o destino.
+        </p>
       </section>
 
       <!-- 5) Solicitar Vaga -->
@@ -238,6 +289,10 @@
   <!-- Toast acessível -->
   <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
   <script src="script.js"></script>
 </body>
 </html>

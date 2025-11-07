@@ -69,9 +69,78 @@
   
     const dadosDoForm = form => Object.fromEntries(new FormData(form).entries());
   
-    // Função auxiliar para obter endereço do aluno via responsável
+    // Função auxiliar para montar endereço completo a partir dos campos separados
+    function montarEnderecoCompleto(rua, numero, bairro, cidade, estado, cep) {
+      const partes = [];
+      if (rua) partes.push(rua);
+      if (numero) partes.push(rua ? numero : `Nº ${numero}`);
+      if (bairro) partes.push(bairro);
+      if (cidade) partes.push(cidade);
+      if (estado) partes.push(estado);
+      if (cep) partes.push(`CEP: ${cep}`);
+      
+      return partes.filter(Boolean).join(', ');
+    }
+
+    // Função auxiliar para obter endereço completo de uma rota (suporta formato antigo e novo)
+    function obterEnderecoRota(rota, tipo) {
+      // Formato novo (campos separados)
+      if (tipo === 'origem') {
+        if (rota.origemRua) {
+          return montarEnderecoCompleto(
+            rota.origemRua,
+            rota.origemNumero,
+            rota.origemBairro,
+            rota.origemCidade,
+            rota.origemEstado,
+            rota.origemCEP
+          );
+        }
+        // Formato antigo (compatibilidade)
+        return rota.origem || '';
+      } else if (tipo === 'destino') {
+        if (rota.destinoRua) {
+          return montarEnderecoCompleto(
+            rota.destinoRua,
+            rota.destinoNumero,
+            rota.destinoBairro,
+            rota.destinoCidade,
+            rota.destinoEstado,
+            rota.destinoCEP
+          );
+        }
+        // Formato antigo (compatibilidade)
+        return rota.destino || '';
+      }
+      return '';
+    }
+  
+    // Função auxiliar para obter endereço do aluno
+    // Prioriza o endereço da rota se o aluno tiver uma solicitação confirmada/aprovada
     function obterEnderecoAluno(aluno) {
-      if (!aluno || !aluno.responsavelId) {
+      if (!aluno) {
+        return 'Endereço não cadastrado';
+      }
+
+      // Verificar se o aluno tem uma solicitação confirmada ou aprovada
+      const solicitacaoAtiva = solicitacoes.find(s => 
+        s.alunoId === aluno.id && 
+        (s.status === 'confirmada' || s.status === 'aprovada')
+      );
+
+      // Se tiver solicitação ativa, usar o endereço de origem da rota
+      if (solicitacaoAtiva) {
+        const rota = rotas.find(r => r.id === solicitacaoAtiva.rotaId);
+        if (rota) {
+          const enderecoOrigem = obterEnderecoRota(rota, 'origem');
+          if (enderecoOrigem) {
+            return enderecoOrigem;
+          }
+        }
+      }
+
+      // Caso contrário, usar o endereço do responsável
+      if (!aluno.responsavelId) {
         return 'Endereço não cadastrado';
       }
       const responsavel = pais.find(p => p.id === aluno.responsavelId);
@@ -206,16 +275,18 @@
       // Buscar em rotas
       rotas.forEach(r => {
         const motorista = motoristas.find(m => m.id === r.motoristaId);
+        const enderecoOrigem = obterEnderecoRota(r, 'origem');
+        const enderecoDestino = obterEnderecoRota(r, 'destino');
         if (
           r.nome?.toLowerCase().includes(termoLower) ||
-          r.origem?.toLowerCase().includes(termoLower) ||
-          r.destino?.toLowerCase().includes(termoLower) ||
+          enderecoOrigem?.toLowerCase().includes(termoLower) ||
+          enderecoDestino?.toLowerCase().includes(termoLower) ||
           motorista?.nome?.toLowerCase().includes(termoLower)
         ) {
           resultados.push({
             tipo: 'Rota',
             titulo: r.nome,
-            subtitulo: `${r.origem} → ${r.destino} • ${r.horario} • Motorista: ${motorista?.nome || 'N/A'}`,
+            subtitulo: `${enderecoOrigem} → ${enderecoDestino} • ${r.horario} • Motorista: ${motorista?.nome || 'N/A'}`,
             id: r.id,
             dados: r
           });
@@ -379,7 +450,9 @@
       rotas.forEach(r => {
         const opt = document.createElement('option');
         opt.value = r.id;
-        opt.textContent = `${r.nome} - ${r.origem} → ${r.destino} (${r.horario})`;
+        const enderecoOrigem = obterEnderecoRota(r, 'origem');
+        const enderecoDestino = obterEnderecoRota(r, 'destino');
+        opt.textContent = `${r.nome} - ${enderecoOrigem} → ${enderecoDestino} (${r.horario})`;
         select.appendChild(opt);
       });
     }
@@ -477,11 +550,13 @@
       }
       rotas.forEach(r => {
         const motorista = motoristas.find(m => m.id === r.motoristaId);
+        const enderecoOrigem = obterEnderecoRota(r, 'origem');
+        const enderecoDestino = obterEnderecoRota(r, 'destino');
         const li = document.createElement('li');
         li.innerHTML = `
           <span>
             <strong>${r.nome}</strong><br>
-            <small class="textoMutado">${r.origem} → ${r.destino} • ${r.horario} • ${r.vagas} vagas • Motorista: ${motorista ? motorista.nome : 'N/A'}</small>
+            <small class="textoMutado">${enderecoOrigem} → ${enderecoDestino} • ${r.horario} • ${r.vagas} vagas • Motorista: ${motorista ? motorista.nome : 'N/A'}</small>
           </span>
           <button class="botao botaoPerigo" onclick="window.excluirRota('${r.id}')">Excluir</button>
         `;
@@ -539,7 +614,248 @@
       atualizarSelectMotoristas();
       atualizarSelectRotas();
       atualizarSelectAlunos();
+      atualizarSeletorRotasMapa();
+      atualizarMapa();
       salvarDados();
+    }
+
+    // ============================================
+    // Sistema de Mapa
+    // ============================================
+    let mapa = null;
+    let marcadores = [];
+    let polylines = [];
+    let rotaSelecionadaMapa = 'todas';
+
+    // Função para geocodificar um endereço (converter em coordenadas)
+    async function geocodificarEndereco(endereco) {
+      if (!endereco || !endereco.trim()) {
+        return null;
+      }
+
+      try {
+        // Usando Nominatim API (gratuita, sem chave)
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}&limit=1&countrycodes=br`;
+        
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'TransporteEscolar/1.0'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Erro na requisição');
+        }
+        
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+          return {
+            lat: parseFloat(data[0].lat),
+            lng: parseFloat(data[0].lon),
+            enderecoCompleto: data[0].display_name
+          };
+        }
+        
+        return null;
+      } catch (error) {
+        console.warn(`Erro ao geocodificar "${endereco}":`, error);
+        return null;
+      }
+    }
+
+    // Atualizar seletor de rotas no mapa
+    function atualizarSeletorRotasMapa() {
+      const seletor = el('seletorRotaMapa');
+      if (!seletor) return;
+
+      const valorAtual = seletor.value;
+      seletor.innerHTML = '<option value="todas">Todas as Rotas</option>';
+
+      rotas.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        const enderecoOrigem = obterEnderecoRota(r, 'origem');
+        const enderecoDestino = obterEnderecoRota(r, 'destino');
+        opt.textContent = `${r.nome} - ${enderecoOrigem} → ${enderecoDestino}`;
+        seletor.appendChild(opt);
+      });
+
+      // Restaurar valor selecionado se ainda existir
+      if (valorAtual && rotas.find(r => r.id === valorAtual)) {
+        seletor.value = valorAtual;
+      } else {
+        seletor.value = 'todas';
+        rotaSelecionadaMapa = 'todas';
+      }
+    }
+
+    // Inicializar o mapa
+    function inicializarMapa() {
+      const containerMapa = el('mapaRotas');
+      if (!containerMapa) {
+        console.warn('Container do mapa não encontrado');
+        return;
+      }
+
+      if (typeof L === 'undefined') {
+        console.warn('Leaflet não está carregado. Tentando novamente...');
+        setTimeout(inicializarMapa, 500);
+        return;
+      }
+
+      // Se o mapa já foi inicializado, apenas atualizar
+      if (mapa) {
+        atualizarMapa();
+        return;
+      }
+
+      try {
+        // Criar mapa centralizado no Brasil (coordenadas aproximadas)
+        mapa = L.map('mapaRotas', {
+          zoomControl: true,
+          attributionControl: true
+        }).setView([-14.2350, -51.9253], 5);
+
+        // Adicionar camada de tiles (OpenStreetMap com tema claro)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 19
+        }).addTo(mapa);
+
+        console.log('Mapa inicializado com sucesso');
+        
+        // Atualizar o mapa após inicializar
+        atualizarMapa();
+      } catch (error) {
+        console.error('Erro ao inicializar mapa:', error);
+      }
+    }
+
+    // Limpar marcadores e polylines do mapa
+    function limparMapa() {
+      if (!mapa) return;
+      marcadores.forEach(marker => mapa.removeLayer(marker));
+      polylines.forEach(polyline => mapa.removeLayer(polyline));
+      marcadores = [];
+      polylines = [];
+    }
+
+    // Atualizar o mapa com as rotas cadastradas
+    async function atualizarMapa() {
+      if (!mapa) {
+        console.warn('Mapa não inicializado');
+        return;
+      }
+
+      limparMapa();
+
+      if (rotas.length === 0) {
+        console.log('Nenhuma rota cadastrada');
+        return;
+      }
+
+      // Filtrar rotas baseado na seleção
+      let rotasParaMostrar = rotas;
+      if (rotaSelecionadaMapa && rotaSelecionadaMapa !== 'todas') {
+        rotasParaMostrar = rotas.filter(r => r.id === rotaSelecionadaMapa);
+      }
+
+      if (rotasParaMostrar.length === 0) {
+        console.log('Nenhuma rota para mostrar');
+        return;
+      }
+
+      const coordenadasRotas = [];
+      let rotasProcessadas = 0;
+
+      // Processar cada rota
+      for (const rota of rotasParaMostrar) {
+        const motorista = motoristas.find(m => m.id === rota.motoristaId);
+        
+        // Obter endereços completos (suporta formato antigo e novo)
+        const enderecoOrigem = obterEnderecoRota(rota, 'origem');
+        const enderecoDestino = obterEnderecoRota(rota, 'destino');
+        
+        // Geocodificar origem e destino
+        const coordOrigem = await geocodificarEndereco(enderecoOrigem);
+        const coordDestino = await geocodificarEndereco(enderecoDestino);
+
+        if (coordOrigem && coordDestino) {
+          coordenadasRotas.push({
+            rota: rota,
+            motorista: motorista,
+            origem: coordOrigem,
+            destino: coordDestino
+          });
+
+          // Adicionar marcador de origem (azul)
+          const markerOrigem = L.marker([coordOrigem.lat, coordOrigem.lng], {
+            icon: L.divIcon({
+              className: 'marker-origem',
+              html: '<div style="background-color: #3b82f6; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+              iconSize: [20, 20],
+              iconAnchor: [10, 10]
+            })
+          });
+
+          markerOrigem.bindPopup(`
+            <strong>Origem: ${rota.nome}</strong><br>
+            <small>${coordOrigem.enderecoCompleto || enderecoOrigem}</small><br>
+            <small>Horário: ${rota.horario}</small>
+          `);
+          markerOrigem.addTo(mapa);
+          marcadores.push(markerOrigem);
+
+          // Adicionar marcador de destino (vermelho)
+          const markerDestino = L.marker([coordDestino.lat, coordDestino.lng], {
+            icon: L.divIcon({
+              className: 'marker-destino',
+              html: '<div style="background-color: #ef4444; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+              iconSize: [20, 20],
+              iconAnchor: [10, 10]
+            })
+          });
+
+          markerDestino.bindPopup(`
+            <strong>Destino: ${rota.nome}</strong><br>
+            <small>${coordDestino.enderecoCompleto || enderecoDestino}</small><br>
+            <small>Motorista: ${motorista ? motorista.nome : 'N/A'}</small><br>
+            <small>Vagas: ${rota.vagas}</small>
+          `);
+          markerDestino.addTo(mapa);
+          marcadores.push(markerDestino);
+
+          // Adicionar linha conectando origem e destino
+          const polyline = L.polyline(
+            [[coordOrigem.lat, coordOrigem.lng], [coordDestino.lat, coordDestino.lng]],
+            {
+              color: '#d4a620',
+              weight: 3,
+              opacity: 0.7,
+              dashArray: '10, 5'
+            }
+          ).addTo(mapa);
+          polylines.push(polyline);
+        }
+
+        rotasProcessadas++;
+        
+        // Aguardar um pouco entre requisições para evitar rate limiting
+        if (rotasProcessadas < rotas.length) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      // Ajustar o zoom do mapa para mostrar todas as rotas
+      if (coordenadasRotas.length > 0) {
+        const bounds = [];
+        coordenadasRotas.forEach(coord => {
+          bounds.push([coord.origem.lat, coord.origem.lng]);
+          bounds.push([coord.destino.lat, coord.destino.lng]);
+        });
+        mapa.fitBounds(bounds, { padding: [50, 50] });
+      }
     }
   
     // ============================================
@@ -712,11 +1028,51 @@
         if (!validarFormulario(form)) return;
         
         const dados = dadosDoForm(form);
+        
+        // Montar endereços completos a partir dos campos separados
+        const origemCompleto = montarEnderecoCompleto(
+          dados.origemRua,
+          dados.origemNumero,
+          dados.origemBairro,
+          dados.origemCidade,
+          dados.origemEstado,
+          dados.origemCEP
+        );
+        
+        const destinoCompleto = montarEnderecoCompleto(
+          dados.destinoRua,
+          dados.destinoNumero,
+          dados.destinoBairro,
+          dados.destinoCidade,
+          dados.destinoEstado,
+          dados.destinoCEP
+        );
+        
         const novaRota = {
           id: Date.now().toString(),
-          ...dados,
+          nome: dados.nome,
+          motoristaId: dados.motoristaId,
+          horario: dados.horario,
+          vagas: dados.vagas,
+          // Campos separados
+          origemRua: dados.origemRua,
+          origemNumero: dados.origemNumero,
+          origemBairro: dados.origemBairro,
+          origemCidade: dados.origemCidade,
+          origemEstado: dados.origemEstado,
+          origemCEP: dados.origemCEP,
+          destinoRua: dados.destinoRua,
+          destinoNumero: dados.destinoNumero,
+          destinoBairro: dados.destinoBairro,
+          destinoCidade: dados.destinoCidade,
+          destinoEstado: dados.destinoEstado,
+          destinoCEP: dados.destinoCEP,
+          // Endereço completo (para compatibilidade)
+          origem: origemCompleto,
+          destino: destinoCompleto,
           criadoEm: new Date().toISOString()
         };
+        
         rotas.push(novaRota);
         atualizarTudo();
         mostrarToast('Rota cadastrada com sucesso!');
@@ -744,6 +1100,45 @@
       });
   
       atualizarTudo();
+      
+      // Máscaras para campos de endereço
+      const camposCEP = ['campoOrigemCEP', 'campoDestinoCEP'];
+      camposCEP.forEach(id => {
+        const campo = el(id);
+        if (campo) {
+          campo.addEventListener('input', (e) => {
+            let valor = e.target.value.replace(/\D/g, '');
+            if (valor.length > 5) {
+              valor = valor.substring(0, 5) + '-' + valor.substring(5, 8);
+            }
+            e.target.value = valor;
+          });
+        }
+      });
+
+      const camposEstado = ['campoOrigemEstado', 'campoDestinoEstado'];
+      camposEstado.forEach(id => {
+        const campo = el(id);
+        if (campo) {
+          campo.addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').substring(0, 2);
+          });
+        }
+      });
+      
+      // Inicializar mapa após um pequeno delay para garantir que o Leaflet carregou
+      setTimeout(() => {
+        inicializarMapa();
+      }, 500);
+
+      // Event listener para o seletor de rotas do mapa
+      const seletorRotaMapa = el('seletorRotaMapa');
+      if (seletorRotaMapa) {
+        seletorRotaMapa.addEventListener('change', (e) => {
+          rotaSelecionadaMapa = e.target.value;
+          atualizarMapa();
+        });
+      }
     }
   
     // ============================================
